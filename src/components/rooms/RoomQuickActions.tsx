@@ -1,5 +1,5 @@
 'use client';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Play,
   CalendarPlus,
@@ -96,11 +96,11 @@ const statusBadge: Record<RoomStatus, string> = {
 };
 
 const toneClasses: Record<ActionTone, string> = {
-  primary: 'border-primary/25 bg-primary/10 text-primary hover:bg-primary/20',
-  accent: 'border-accent/25 bg-accent/10 text-accent hover:bg-accent/20',
-  warning: 'border-warning/25 bg-warning/10 text-warning hover:bg-warning/20',
-  danger: 'border-danger/30 bg-danger/10 text-danger hover:bg-danger/20',
-  neutral: 'border-border bg-card text-muted-foreground hover:text-foreground',
+  primary: 'qa-tile qa-tone-primary',
+  accent: 'qa-tile qa-tone-accent',
+  warning: 'qa-tile qa-tone-warning',
+  danger: 'qa-tile qa-tone-danger',
+  neutral: 'qa-tile qa-tone-neutral border',
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -147,7 +147,7 @@ interface RoomQuickActionsProps {
 
 export default function RoomQuickActions({ room, onStatusChange, className = '' }: RoomQuickActionsProps) {
   const [open, setOpen] = useState(false);
-  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [liveSession, setLiveSession] = useState<UiLiveSession | null>(null);
 
   // Reused session flows
@@ -166,6 +166,19 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
   >(null);
 
   const actions = useMemo(() => ROOM_ACTIONS[room.status], [room.status]);
+
+  // Escape closes the topmost layer (sub-dialog first, then the actions modal).
+  useEffect(() => {
+    if (!open && !dialog) return;
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      if (dialog) setDialog(null);
+      else setOpen(false);
+    };
+    window.addEventListener('keydown', handleEscapeKey);
+    return () => window.removeEventListener('keydown', handleEscapeKey);
+  }, [open, dialog]);
 
   const closeAll = () => {
     setOpen(false);
@@ -228,27 +241,27 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
         return;
       }
       case 'end-session': {
-        setBusyAction(actionId);
+        setProcessingAction(actionId);
         const s = await requireLiveSession();
-        setBusyAction(null);
+        setProcessingAction(null);
         if (!s) return;
         setPaymentTarget(s);
         setOpen(false);
         return;
       }
       case 'add-drinks': {
-        setBusyAction(actionId);
+        setProcessingAction(actionId);
         const s = await requireLiveSession();
-        setBusyAction(null);
+        setProcessingAction(null);
         if (!s) return;
         setAddDrinksTarget(s);
         setOpen(false);
         return;
       }
       case 'pause-session': {
-        setBusyAction(actionId);
+        setProcessingAction(actionId);
         const s = await requireLiveSession();
-        setBusyAction(null);
+        setProcessingAction(null);
         if (!s) return;
         try {
           if (s.status === 'active') await pauseSession(s.id);
@@ -265,9 +278,9 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
         return;
       }
       case 'print-receipt': {
-        setBusyAction(actionId);
+        setProcessingAction(actionId);
         const s = await requireLiveSession();
-        setBusyAction(null);
+        setProcessingAction(null);
         if (!s) return;
         downloadReceiptPdf(s);
         toast.success('Receipt PDF generated');
@@ -280,7 +293,7 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
       }
       case 'edit-reservation':
       case 'cancel-reservation': {
-        setBusyAction(actionId);
+        setProcessingAction(actionId);
         try {
           const all = await reservationsApi.list();
           const target = all.find(
@@ -288,7 +301,7 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
               r.room === room.name &&
               (r.status === 'Reserved' || r.status === 'Waiting' || r.status === 'Late')
           );
-          setBusyAction(null);
+          setProcessingAction(null);
           if (!target) {
             toast.error(`No upcoming reservation found for ${room.name}`);
             return;
@@ -304,7 +317,7 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
               players: target.players,
             });
         } catch (err) {
-          setBusyAction(null);
+          setProcessingAction(null);
           toastApiError(err);
         }
         return;
@@ -374,7 +387,7 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
 
   return (
     <>
-      {/* Trigger button — independent of card click */}
+      {/* Trigger button — aligned to the primary checkout (.btn-primary) language */}
       <button
         type="button"
         onClick={(e) => {
@@ -383,12 +396,10 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
         }}
         onKeyDown={(e) => e.stopPropagation()}
         title="Quick Actions"
-        className={`group w-full flex items-center justify-center gap-1.5 h-8 rounded-lg border border-primary/25 bg-primary/10 text-[11px] font-bold uppercase tracking-wider text-primary hover:bg-primary/15 hover:border-primary/40 active:scale-[0.98] transition-all ${className}`}
+        aria-haspopup="dialog"
+        className={`btn-primary w-full h-8 flex items-center justify-center gap-1.5 !text-[11px] uppercase tracking-wider ${className}`}
       >
-        <Settings2
-          size={13}
-          className="transition-transform duration-200 group-hover:rotate-90"
-        />
+        <Settings2 size={13} />
         Quick Actions
       </button>
 
@@ -397,8 +408,12 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={closeAll}
+          onKeyDown={(e) => e.stopPropagation()}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Quick actions for ${room.name}`}
             className="glass-panel pop-in w-full max-w-md rounded-2xl overflow-hidden flex flex-col max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
@@ -424,11 +439,11 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
               {actions.map((a) => (
                 <button
                   key={a.id}
-                  disabled={busyAction !== null}
+                  disabled={processingAction !== null}
                   onClick={() => void runAction(a.id)}
                   className={`flex items-center gap-2.5 px-3 py-3 rounded-xl border text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-left min-w-0 ${toneClasses[a.tone]}`}
                 >
-                  {busyAction === a.id ? (
+                  {processingAction === a.id ? (
                     <Loader2 size={16} className="animate-spin shrink-0" />
                   ) : (
                     <span className="shrink-0">{a.icon}</span>

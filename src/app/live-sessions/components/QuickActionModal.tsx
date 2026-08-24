@@ -71,8 +71,9 @@ export default function QuickActionModal({
         const res = await fetch(apiPath, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          // Send only the identifier + deltas — the server resolves its own state.
           body: JSON.stringify({
-            target,
+            id: target.id,
             productId: drink.id,
             quantity,
             extendMinutes,

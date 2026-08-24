@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const requestedId: unknown = body?.target?.id;
+    // Only ever trust a session identifier — never client-sent session state.
+    const requestedId: unknown = body?.id ?? body?.target?.id;
     const productId: unknown = body?.productId;
     const quantity: unknown = body?.quantity;
     const extendMinutes: unknown = body?.extendMinutes;

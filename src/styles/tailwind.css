@@ -596,6 +596,76 @@
   .console-row:hover {
     background: color-mix(in srgb, var(--card) 40%, transparent);
   }
+
+  /* ── Quick-action tiles ─────────────────────────────────────
+     Shares .btn-primary's premium motion language: gradient body,
+     shimmer sweep on hover, elevation glow, press-down scale.   */
+  .qa-tile {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .qa-tile::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.35) 50%,
+      transparent 60%
+    );
+    transform: translateX(-120%);
+    transition: transform 550ms ease;
+    pointer-events: none;
+  }
+
+  .qa-tile:hover:not(:disabled)::after {
+    transform: translateX(120%);
+  }
+
+  .qa-tile:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px -10px rgba(139, 92, 246, 0.45);
+  }
+
+  .qa-tile:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  .qa-tone-primary {
+    background-image: var(--gradient-primary);
+    color: var(--primary-foreground);
+    border-color: transparent;
+  }
+
+  .qa-tone-accent {
+    background-image: linear-gradient(135deg, #6ee7b7, #10b981);
+    color: #00331f;
+    border-color: transparent;
+  }
+
+  .qa-tone-warning {
+    background-image: linear-gradient(135deg, #ffe066, #d9a900);
+    color: #332600;
+    border-color: transparent;
+  }
+
+  .qa-tone-danger {
+    background-image: linear-gradient(135deg, #ff8a80, #dc2626);
+    color: #fff1f0;
+    border-color: transparent;
+  }
+
+  .qa-tone-neutral {
+    background: color-mix(in srgb, var(--card) 70%, transparent);
+    color: var(--muted-foreground);
+  }
+
+  .qa-tone-neutral:hover:not(:disabled) {
+    color: var(--foreground);
+    box-shadow: none;
+  }
 }
 
 @keyframes fadeIn {

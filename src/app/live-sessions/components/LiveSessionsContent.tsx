@@ -1,5 +1,5 @@
 'use client';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import LiveSessionsHeader from './LiveSessionsHeader';
 import SessionsGrid from './SessionsGrid';
 import PaymentModal from './PaymentModal';
@@ -36,7 +36,7 @@ export interface SessionProduct {
   qty: number;
 }
 
-const REFRESH_DEBOUNCE_MS = 400;
+  const REFRESH_DEBOUNCE_MS = 400;
 
 export default function LiveSessionsContent() {
   const [sessions, setSessions] = useState<UiLiveSession[]>([]);
@@ -61,20 +61,49 @@ export default function LiveSessionsContent() {
     }
   }, []);
 
+  /**
+   * Optimistic-update guard: while a mutation is in flight we suppress
+   * realtime-triggered refetches so the optimistic UI is not clobbered
+   * (flash/duplicate rows). One reconciling reload runs after settle.
+   */
+  const pendingMutationsRef = useRef(0);
+  const suppressedChangeRef = useRef(false);
+  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const beginMutation = () => {
+    pendingMutationsRef.current += 1;
+  };
+
+  const endMutation = useCallback(
+    (didFail: boolean) => {
+      pendingMutationsRef.current = Math.max(0, pendingMutationsRef.current - 1);
+      if (pendingMutationsRef.current === 0 && suppressedChangeRef.current) {
+        suppressedChangeRef.current = false;
+        void reload();
+      } else if (didFail) {
+        void reload();
+      }
+    },
+    [reload]
+  );
+
   // Initial load + realtime subscription: every client sees starts/pauses/
   // checkouts/product lines the moment they are committed — no polling.
   useEffect(() => {
     void reload();
-    let timer: ReturnType<typeof setTimeout> | null = null;
     const unsubscribe = subscribeLiveFloor({
       onChange: () => {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => void reload(), REFRESH_DEBOUNCE_MS);
+        if (pendingMutationsRef.current > 0) {
+          suppressedChangeRef.current = true;
+          return;
+        }
+        if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+        reloadTimerRef.current = setTimeout(() => void reload(), REFRESH_DEBOUNCE_MS);
       },
     });
     return () => {
       unsubscribe();
-      if (timer) clearTimeout(timer);
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
     };
   }, [reload]);
 
@@ -100,6 +129,8 @@ export default function LiveSessionsContent() {
   const handleAddProduct = async (sessionId: string, product: SessionProduct) => {
     setAddProductTarget(null);
     // Optimistic line append; realtime refetch reconciles with the server.
+    // The id prefix lets any merge logic recognize client-only lines.
+    beginMutation();
     setSessions((prev) =>
       prev.map((s) => {
         if (s.id !== sessionId) return s;
@@ -126,6 +157,7 @@ export default function LiveSessionsContent() {
         };
       })
     );
+    let failed = false;
     try {
       await addSessionProduct({
         sessionId,
@@ -136,8 +168,10 @@ export default function LiveSessionsContent() {
       });
       toast.success(`${product.name} ×${product.qty} added to the bill`);
     } catch (err) {
+      failed = true;
       toast.error(err instanceof Error ? err.message : 'Could not add product');
-      void reload();
+    } finally {
+      endMutation(failed);
     }
   };
 
@@ -146,17 +180,21 @@ export default function LiveSessionsContent() {
     if (!target) return;
     const goingPaused = target.status === 'active';
     // Optimistic flip
+    beginMutation();
     setSessions((prev) =>
       prev.map((s) =>
         s.id === sessionId ? { ...s, status: goingPaused ? 'paused' : 'active' } : s
       )
     );
+    let failed = false;
     try {
       if (goingPaused) await pauseSession(sessionId);
       else await resumeSession(sessionId);
     } catch (err) {
+      failed = true;
       toast.error(err instanceof Error ? err.message : 'Could not change session state');
-      void reload();
+    } finally {
+      endMutation(failed);
     }
   };
 
@@ -195,6 +233,8 @@ export default function LiveSessionsContent() {
   }): Promise<{ ok: boolean; error?: string }> => {
     const target = quickActionTarget;
     if (!target) return { ok: false, error: 'No session selected' };
+    beginMutation();
+    let failed = false;
     try {
       const calls: Promise<void>[] = [];
       if (args.extendMinutes > 0) calls.push(extendSession(target.id, args.extendMinutes));
@@ -214,7 +254,10 @@ export default function LiveSessionsContent() {
       void reload();
       return { ok: true };
     } catch (err) {
+      failed = true;
       return { ok: false, error: err instanceof Error ? err.message : 'Quick action failed' };
+    } finally {
+      endMutation(failed);
     }
   };
 

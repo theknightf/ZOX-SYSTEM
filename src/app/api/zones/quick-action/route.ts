@@ -12,12 +12,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const target: ZoneSession | undefined = body?.target;
+    // Only ever trust a zone identifier — never a client-sent target object.
+    const requestedId: unknown = body?.id ?? body?.target?.id;
     const productId: unknown = body?.productId;
     const quantity: unknown = body?.quantity;
     const extendMinutes: unknown = body?.extendMinutes;
 
-    if (!target?.id || !store.has(target.id)) {
+    if (typeof requestedId !== 'string' || !requestedId || !store.has(requestedId)) {
       return NextResponse.json({ ok: false, error: 'Unknown zone' }, { status: 400 });
     }
 
@@ -34,7 +35,8 @@ export async function POST(request: NextRequest) {
       ? Number(extendMinutes)
       : QUICK_ACTION_CONFIG.extendMinutes;
 
-    const current = store.get(target.id)!;
+    // Authoritative zone state comes from the server store — pricing included.
+    const current = store.get(requestedId)!;
 
     const result = applyZoneQuickAction(current, {
       productId: product.id,
@@ -42,7 +44,7 @@ export async function POST(request: NextRequest) {
       extendMinutes: minutes,
     });
 
-    store.set(target.id, structuredClone(result.zone));
+    store.set(requestedId, structuredClone(result.zone));
 
     return NextResponse.json({
       ok: true,
