@@ -198,16 +198,19 @@ function DashboardLayout({
     <div className="relative p-4 lg:p-6 xl:p-8 max-w-screen-2xl mx-auto space-y-6">
       <div className="relative z-10 space-y-6 stagger-in">
         <DashboardTopBar />
-        <div className="glass-panel rounded-xl p-5 lg:p-6">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="glass-panel rounded-xl p-5 lg:p-6 relative overflow-hidden">
+          <div className="pointer-events-none absolute -top-16 -right-10 w-56 h-56 rounded-full bg-primary/15 blur-3xl" />
+          <div className="relative flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{config.headline}</h1>
-              <p className="text-sm text-muted-foreground mt-1">{config.subhead}</p>
+              <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tightest">
+                {config.headline}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1 font-medium">{config.subhead}</p>
             </div>
             {config.showStartSession && (
               <button
                 onClick={onStartSession}
-                className="px-5 py-3 rounded-xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/20 hover:opacity-90 transition-all active:scale-95"
+                className="btn-primary px-6 py-3 rounded-xl text-base shadow-lg shadow-primary/30"
               >
                 Start Session
               </button>
@@ -225,10 +228,10 @@ function DashboardLayout({
                   <span className={stat.color}>{stat.icon}</span>
                 </div>
               </div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
                 {stat.label}
               </p>
-              <p className={`text-2xl font-bold font-tabular mt-1 ${stat.color}`}>{stat.value}</p>
+              <p className={`text-3xl font-extrabold font-tabular mt-1.5 ${stat.color}`}>{stat.value}</p>
               <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
             </div>
           ))}
@@ -456,9 +459,9 @@ export default function StaffDashboardContent() {
     return (
       <div className="relative p-4 lg:p-6 xl:p-8 max-w-screen-2xl mx-auto space-y-6">
         <Toaster position="bottom-right" theme="system" />
-        <div className="pointer-events-none absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute top-1/3 -right-32 w-[26rem] h-[26rem] rounded-full bg-accent/10 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-1/3 w-[24rem] h-[24rem] rounded-full bg-warning/5 blur-3xl" />
+        <div className="aurora-blob aurora-blob-violet absolute -top-24 -left-24 w-[28rem] h-[28rem] rounded-full" />
+        <div className="aurora-blob aurora-blob-emerald absolute top-1/3 -right-32 w-[26rem] h-[26rem] rounded-full" />
+        <div className="aurora-blob aurora-blob-gold absolute bottom-0 left-1/3 w-[24rem] h-[24rem] rounded-full" />
         <div className="relative z-10 space-y-6 stagger-in">
           <DashboardTopBar />
           <QuickStatsRow />

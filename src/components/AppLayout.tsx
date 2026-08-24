@@ -33,8 +33,8 @@ export default function AppLayout({ children, currentPath, role = 'staff' }: App
   return (
     <div className="flex min-h-screen bg-background">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute top-1/4 -right-28 h-80 w-80 rounded-full bg-accent/10 blur-3xl" />
+        <div className="aurora-blob aurora-blob-violet absolute -top-32 -left-32 h-[28rem] w-[28rem] rounded-full" />
+        <div className="aurora-blob aurora-blob-emerald absolute top-1/4 -right-28 h-96 w-96 rounded-full" />
       </div>
       <Sidebar currentPath={currentPath} role={role} />
       <main className="relative flex-1 min-w-0 overflow-auto">{children}</main>

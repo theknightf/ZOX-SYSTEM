@@ -45,21 +45,23 @@ export default function BrandPanel() {
       </div>
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-12">
-          <div className="w-11 h-11 bg-primary rounded-lg flex items-center justify-center glow-primary">
+          <div className="w-11 h-11 bg-gradient-to-br from-[#a78bfa] via-primary to-[#6d28d9] rounded-xl flex items-center justify-center glow-primary">
             <Gamepad2 size={22} className="text-white" />
           </div>
           <div>
-            <span className="text-xl font-bold text-foreground tracking-tight">Zoox</span>
-            <p className="text-xs text-muted-foreground">PlayStation Center</p>
+            <span className="text-2xl font-black tracking-tight text-gradient">Zoox</span>
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              PlayStation Center
+            </p>
           </div>
         </div>
 
-        <h2 className="text-3xl xl:text-4xl font-bold text-foreground leading-tight mb-4">
+        <h2 className="text-4xl xl:text-5xl font-black text-foreground leading-[1.08] mb-5 tracking-tighter">
           Run your gaming center
           <br />
-          <span className="text-primary">at full speed.</span>
+          <span className="text-shine">at full speed.</span>
         </h2>
-        <p className="text-muted-foreground text-sm leading-relaxed max-w-sm">
+        <p className="text-muted-foreground text-sm leading-relaxed max-w-sm font-medium">
           Manage rooms, sessions, reservations, café sales, and customer loyalty — all from one
           operational dashboard built for speed.
         </p>
@@ -67,12 +69,15 @@ export default function BrandPanel() {
       <div className="relative z-10 space-y-6">
         <div className="grid grid-cols-2 gap-4">
           {liveStats.map((stat) => (
-            <div key={stat.id} className="bg-background/60 border border-border rounded-xl p-4">
+            <div
+              key={stat.id}
+              className="glass-panel glow-hover border border-border rounded-xl p-4"
+            >
               <div className="flex items-center gap-2 mb-2">
                 <span className={stat.color}>{stat.icon}</span>
-                <span className="text-xs text-muted-foreground">{stat.label}</span>
+                <span className="text-xs font-semibold text-muted-foreground">{stat.label}</span>
               </div>
-              <p className={`text-2xl font-bold font-tabular ${stat.color}`}>{stat.value}</p>
+              <p className={`text-2xl font-extrabold font-tabular ${stat.color}`}>{stat.value}</p>
             </div>
           ))}
         </div>

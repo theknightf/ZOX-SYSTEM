@@ -225,11 +225,15 @@ function SidebarContent({
         className={`flex items-center border-b border-border transition-all duration-300 ${collapsed ? 'justify-center px-3 py-4' : 'px-4 py-4 gap-3'}`}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <AppLogo size={32} />
+          <AppLogo size={32} className="drop-shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
           {!collapsed && (
             <div className="min-w-0">
-              <span className="font-bold text-base text-foreground tracking-tight">Zoox</span>
-              <p className="text-xs text-muted-foreground truncate">PlayStation Center</p>
+              <span className="font-black text-lg tracking-tight">
+                <span className="text-gradient">Zoox</span>
+              </span>
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-muted-foreground truncate">
+                PlayStation Center
+              </p>
             </div>
           )}
         </div>

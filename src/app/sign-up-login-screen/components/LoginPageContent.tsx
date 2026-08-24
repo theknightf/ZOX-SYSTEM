@@ -31,23 +31,31 @@ export default function LoginPageContent() {
               </div>
               <span className="font-bold text-lg text-foreground">Zoox</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-              {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tighter">
+              {mode === 'login' ? (
+                <>
+                  Welcome <span className="text-shine">Back</span>
+                </>
+              ) : (
+                <>
+                  Create <span className="text-shine">Account</span>
+                </>
+              )}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-2 font-medium">
               {mode === 'login'
                 ? 'Sign in to your Zoox dashboard'
                 : 'Join Zoox as a customer to book sessions and track loyalty'}
             </p>
           </div>
 
-          <div className="flex p-1 bg-muted rounded-lg border border-border">
+          <div className="flex p-1 bg-muted rounded-xl border border-border">
             <button
               type="button"
               onClick={() => setMode('login')}
-              className={`flex-1 py-2 rounded-md text-sm font-semibold transition-colors ${
+              className={`flex-1 py-2 rounded-lg text-sm font-bold tracking-tight transition-all duration-200 ${
                 mode === 'login'
-                  ? 'bg-card text-foreground shadow'
+                  ? 'bg-gradient-to-r from-[#a78bfa] via-primary to-[#6d28d9] text-white shadow-glow-primary'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -56,9 +64,9 @@ export default function LoginPageContent() {
             <button
               type="button"
               onClick={() => setMode('signup')}
-              className={`flex-1 py-2 rounded-md text-sm font-semibold transition-colors ${
+              className={`flex-1 py-2 rounded-lg text-sm font-bold tracking-tight transition-all duration-200 ${
                 mode === 'signup'
-                  ? 'bg-card text-foreground shadow'
+                  ? 'bg-gradient-to-r from-[#a78bfa] via-primary to-[#6d28d9] text-white shadow-glow-primary'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >

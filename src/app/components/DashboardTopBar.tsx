@@ -35,10 +35,11 @@ export default function DashboardTopBar() {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight">
-          Staff Dashboard
+        <span className="spark-kicker mb-2">✦ Live Operations</span>
+        <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tightest text-foreground">
+          Staff <span className="text-shine font-black">Dashboard</span>
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">{currentDate}</p>
+        <p className="text-sm text-muted-foreground mt-1.5 font-medium">{currentDate}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="relative">
