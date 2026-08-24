@@ -20,6 +20,7 @@ import {
   Settings2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import Portal from '@/components/ui/Portal';
 import {
   fetchLiveSessions,
   pauseSession,
@@ -403,258 +404,275 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
         Quick Actions
       </button>
 
-      {/* Actions modal */}
+      {/* Actions modal — portaled to body so fixed positioning escapes glass cards */}
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
-          onClick={closeAll}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
+        <Portal>
           <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Quick actions for ${room.name}`}
-            className="glass-panel pop-in w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col max-h-[85vh] my-auto"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+            onClick={closeAll}
+            onKeyDown={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-7 py-5 border-b border-border shrink-0">
-              <div className="min-w-0">
-                <h3 className="text-xl font-extrabold tracking-tight text-foreground truncate">
-                  {room.name}
-                </h3>
-                <div className="flex items-center gap-2.5 mt-1.5">
-                  <span className={`status-badge capitalize ${statusBadge[room.status]}`}>
-                    {room.status}
-                  </span>
-                  <span className="text-sm text-muted-foreground">{room.type}</span>
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Quick actions for ${room.name}`}
+              className="glass-panel pop-in w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col max-h-[85vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-7 py-5 border-b border-border shrink-0">
+                <div className="min-w-0">
+                  <h3 className="text-xl font-extrabold tracking-tight text-foreground truncate">
+                    {room.name}
+                  </h3>
+                  <div className="flex items-center gap-2.5 mt-1.5">
+                    <span className={`status-badge capitalize ${statusBadge[room.status]}`}>
+                      {room.status}
+                    </span>
+                    <span className="text-sm text-muted-foreground">{room.type}</span>
+                  </div>
                 </div>
-              </div>
-              <button
-                onClick={closeAll}
-                className="w-9 h-9 shrink-0 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Close quick actions"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-7 grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto scrollbar-thin">
-              {actions.map((a) => (
                 <button
-                  key={a.id}
-                  disabled={processingAction !== null}
-                  onClick={() => void runAction(a.id)}
-                  className={`flex items-center gap-3.5 px-5 py-5 rounded-xl border text-base font-bold transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed text-left min-w-0 ${toneClasses[a.tone]}`}
+                  onClick={closeAll}
+                  className="w-9 h-9 shrink-0 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Close quick actions"
                 >
-                  {processingAction === a.id ? (
-                    <Loader2 size={20} className="animate-spin shrink-0" />
-                  ) : (
-                    <span className="shrink-0">{a.icon}</span>
-                  )}
-                  <span className="leading-tight truncate">{a.label}</span>
+                  <X size={20} />
                 </button>
-              ))}
+              </div>
+              <div className="p-7 grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto scrollbar-thin">
+                {actions.map((a) => (
+                  <button
+                    key={a.id}
+                    disabled={processingAction !== null}
+                    onClick={() => void runAction(a.id)}
+                    className={`flex items-center gap-3.5 px-5 py-5 rounded-xl border text-base font-bold transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed text-left min-w-0 ${toneClasses[a.tone]}`}
+                  >
+                    {processingAction === a.id ? (
+                      <Loader2 size={22} className="animate-spin shrink-0" />
+                    ) : (
+                      <span className="shrink-0">{a.icon}</span>
+                    )}
+                    <span className="leading-snug">{a.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* ── Inline sub-dialogs ─────────────────────────── */}
 
       {/* Start Session mini-form (reuses start_session RPC via lib/api/sessions) */}
       {dialog?.kind === 'start-session' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
-          <div className="glass-panel pop-in w-full max-w-sm rounded-2xl p-5">
-            <h4 className="text-sm font-bold text-foreground mb-4">Start Session · {room.name}</h4>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-              Guest name
-            </label>
-            <input
-              autoFocus
-              value={dialog.guest}
-              onChange={(e) => setDialog({ ...dialog, guest: e.target.value })}
-              placeholder="Walk-in guest"
-              className="input-field mb-3"
-            />
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-              Players
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={dialog.players}
-              onChange={(e) => setDialog({ ...dialog, players: Number(e.target.value) || 1 })}
-              className="input-field mb-4"
-            />
-            <div className="flex gap-2">
-              <button onClick={() => setDialog(null)} className="btn-secondary flex-1">
-                Cancel
-              </button>
-              <button
-                onClick={() => void submitStartSession(dialog.guest, dialog.players)}
-                className="btn-primary flex-1"
-              >
-                Start
-              </button>
+        <Portal>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+            <div className="glass-panel pop-in w-full max-w-sm rounded-2xl p-5">
+              <h4 className="text-sm font-bold text-foreground mb-4">Start Session · {room.name}</h4>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                Guest name
+              </label>
+              <input
+                autoFocus
+                value={dialog.guest}
+                onChange={(e) => setDialog({ ...dialog, guest: e.target.value })}
+                placeholder="Walk-in guest"
+                className="input-field mb-3"
+              />
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                Players
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={dialog.players}
+                onChange={(e) => setDialog({ ...dialog, players: Number(e.target.value) || 1 })}
+                className="input-field mb-4"
+              />
+              <div className="flex gap-2">
+                <button onClick={() => setDialog(null)} className="btn-secondary flex-1">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => void submitStartSession(dialog.guest, dialog.players)}
+                  className="btn-primary flex-1"
+                >
+                  Start
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* Notes dialog */}
       {dialog?.kind === 'notes' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
-          <div className="glass-panel pop-in w-full max-w-sm rounded-2xl p-5">
-            <h4 className="text-sm font-bold text-foreground mb-3">Notes · {room.name}</h4>
-            <textarea
-              autoFocus
-              rows={4}
-              value={dialog.value}
-              onChange={(e) => setDialog({ ...dialog, value: e.target.value })}
-              placeholder="Add a note…"
-              className="input-field resize-none mb-4"
-            />
-            <div className="flex gap-2">
-              <button onClick={() => setDialog(null)} className="btn-secondary flex-1">
-                Cancel
-              </button>
-              <button onClick={() => void submitNotes(dialog.value)} className="btn-primary flex-1">
-                Save Note
-              </button>
+        <Portal>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+            <div className="glass-panel pop-in w-full max-w-sm rounded-2xl p-5">
+              <h4 className="text-sm font-bold text-foreground mb-3">Notes · {room.name}</h4>
+              <textarea
+                autoFocus
+                rows={4}
+                value={dialog.value}
+                onChange={(e) => setDialog({ ...dialog, value: e.target.value })}
+                placeholder="Add a note…"
+                className="input-field resize-none mb-4"
+              />
+              <div className="flex gap-2">
+                <button onClick={() => setDialog(null)} className="btn-secondary flex-1">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => void submitNotes(dialog.value)}
+                  className="btn-primary flex-1"
+                >
+                  Save Note
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* Edit reservation dialog (reservationsApi.update) */}
       {dialog?.kind === 'edit-res' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
-          <div className="glass-panel pop-in w-full max-w-sm rounded-2xl p-5">
-            <h4 className="text-sm font-bold text-foreground mb-4">Edit Reservation · {room.name}</h4>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-              Date
-            </label>
-            <input
-              type="date"
-              value={dialog.date}
-              onChange={(e) => setDialog({ ...dialog, date: e.target.value })}
-              className="input-field mb-3"
-            />
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-              Time
-            </label>
-            <input
-              type="time"
-              value={dialog.time}
-              onChange={(e) => setDialog({ ...dialog, time: e.target.value })}
-              className="input-field mb-3"
-            />
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-              Players
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={dialog.players}
-              onChange={(e) => setDialog({ ...dialog, players: Number(e.target.value) || 1 })}
-              className="input-field mb-4"
-            />
-            <div className="flex gap-2">
-              <button onClick={() => setDialog(null)} className="btn-secondary flex-1">
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  void submitEditReservation(
-                    dialog.time,
-                    dialog.date,
-                    dialog.players,
-                    dialog.reservationId
-                  );
-                }}
-                className="btn-primary flex-1"
-              >
-                Save Changes
-              </button>
+        <Portal>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+            <div className="glass-panel pop-in w-full max-w-sm rounded-2xl p-5">
+              <h4 className="text-sm font-bold text-foreground mb-4">
+                Edit Reservation · {room.name}
+              </h4>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                Date
+              </label>
+              <input
+                type="date"
+                value={dialog.date}
+                onChange={(e) => setDialog({ ...dialog, date: e.target.value })}
+                className="input-field mb-3"
+              />
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                Time
+              </label>
+              <input
+                type="time"
+                value={dialog.time}
+                onChange={(e) => setDialog({ ...dialog, time: e.target.value })}
+                className="input-field mb-3"
+              />
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                Players
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={dialog.players}
+                onChange={(e) => setDialog({ ...dialog, players: Number(e.target.value) || 1 })}
+                className="input-field mb-4"
+              />
+              <div className="flex gap-2">
+                <button onClick={() => setDialog(null)} className="btn-secondary flex-1">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    void submitEditReservation(
+                      dialog.time,
+                      dialog.date,
+                      dialog.players,
+                      dialog.reservationId
+                    );
+                  }}
+                  className="btn-primary flex-1"
+                >
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* Cancel reservation confirmation (existing danger styling) */}
       {dialog?.kind === 'confirm-cancel' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
-          <div className="glass-panel pop-in w-full max-w-sm rounded-2xl p-5 text-center">
-            <Ban size={28} className="mx-auto text-danger mb-3" />
-            <h4 className="text-sm font-bold text-foreground">Cancel this reservation?</h4>
-            <p className="text-xs text-muted-foreground mt-1 mb-4">
-              The reservation for {room.name} will be marked as Cancelled.
-            </p>
-            <div className="flex gap-2">
-              <button onClick={() => setDialog(null)} className="btn-secondary flex-1">
-                Keep It
-              </button>
-              <button
-                onClick={() => {
-                  void submitCancelReservation(dialog.reservationId);
-                }}
-                className="flex-1 btn-danger"
-              >
-                Cancel Reservation
-              </button>
+        <Portal>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+            <div className="glass-panel pop-in w-full max-w-sm rounded-2xl p-5 text-center">
+              <Ban size={28} className="mx-auto text-danger mb-3" />
+              <h4 className="text-sm font-bold text-foreground">Cancel this reservation?</h4>
+              <p className="text-xs text-muted-foreground mt-1 mb-4">
+                The reservation for {room.name} will be marked as Cancelled.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setDialog(null)} className="btn-secondary flex-1">
+                  Keep It
+                </button>
+                <button
+                  onClick={() => {
+                    void submitCancelReservation(dialog.reservationId);
+                  }}
+                  className="flex-1 btn-danger"
+                >
+                  Cancel Reservation
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* ── Reused full flows ──────────────────────────── */}
 
       {paymentTarget && (
-        <PaymentModal
-          session={paymentTarget}
-          elapsedMin={computeBill(paymentTarget).elapsed}
-          onClose={() => setPaymentTarget(null)}
-          onConfirmPayment={handleConfirmPayment}
-          onPaymentComplete={(sessionId) => {
-            setEvaluationTarget(
-              paymentTarget.id === sessionId ? paymentTarget : null
-            );
-            setPaymentTarget(null);
-            onStatusChange?.('available');
-          }}
-        />
+        <Portal>
+          <PaymentModal
+            session={paymentTarget}
+            elapsedMin={computeBill(paymentTarget).elapsed}
+            onClose={() => setPaymentTarget(null)}
+            onConfirmPayment={handleConfirmPayment}
+            onPaymentComplete={(sessionId) => {
+              setEvaluationTarget(paymentTarget.id === sessionId ? paymentTarget : null);
+              setPaymentTarget(null);
+              onStatusChange?.('available');
+            }}
+          />
+        </Portal>
       )}
       {evaluationTarget && (
-        <EvaluationPopup
-          session={evaluationTarget}
-          onComplete={() => setEvaluationTarget(null)}
-        />
+        <Portal>
+          <EvaluationPopup session={evaluationTarget} onComplete={() => setEvaluationTarget(null)} />
+        </Portal>
       )}
       {addDrinksTarget && (
-        <AddProductModal
-          session={addDrinksTarget}
-          onClose={() => setAddDrinksTarget(null)}
-          onAdd={async (sessionId, product) => {
-            setAddDrinksTarget(null);
-            try {
-              await addSessionProduct({
-                sessionId,
-                productId:
-                  'productId' in product ? String(product.productId ?? '') || null : null,
-                name: product.name,
-                price: Number(product.price),
-                qty: product.qty,
-              });
-              toast.success(`${product.name} ×${product.qty} added to the bill`);
-            } catch (err) {
-              toast.error(err instanceof Error ? err.message : 'Could not add product');
-            }
-          }}
-        />
+        <Portal>
+          <AddProductModal
+            session={addDrinksTarget}
+            onClose={() => setAddDrinksTarget(null)}
+            onAdd={async (sessionId, product) => {
+              setAddDrinksTarget(null);
+              try {
+                await addSessionProduct({
+                  sessionId,
+                  productId:
+                    'productId' in product ? String(product.productId ?? '') || null : null,
+                  name: product.name,
+                  price: Number(product.price),
+                  qty: product.qty,
+                });
+                toast.success(`${product.name} ×${product.qty} added to the bill`);
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : 'Could not add product');
+              }
+            }}
+          />
+        </Portal>
       )}
       {bookOpen && (
-        <QuickBookModal
+        <Portal>
+          <QuickBookModal
           createdBy="staff"
           onClose={() => setBookOpen(false)}
           onSave={async (res) => {
@@ -682,7 +700,8 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
               toastApiError(err);
             }
           }}
-        />
+          />
+        </Portal>
       )}
     </>
   );

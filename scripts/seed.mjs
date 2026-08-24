@@ -93,7 +93,7 @@ async function ensureUser(u) {
     await supabase.from('profiles').upsert({ id: data.user.id, full_name: u.full_name, phone: u.phone, role: u.role });
     return data.user.id;
   }
-  if (error && /already exists/i.test(error.message)) {
+  if (error && /already (exists|been registered)/i.test(error.message)) {
     const { data: list } = await supabase.auth.admin.listUsers();
     const existing = list?.users?.find((x) => x.email === u.email);
     if (existing) {

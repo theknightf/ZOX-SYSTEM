@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, DoorOpen, ChevronRight, Monitor, Building2 } from 'lucide-react';
 import DashboardTopBar from './DashboardTopBar';
@@ -17,6 +17,8 @@ import QuickActionModal, {
 } from '@/app/live-sessions/components/QuickActionModal';
 import { useRole } from '@/contexts/AuthContext';
 import RoomQuickActions from '@/components/rooms/RoomQuickActions';
+import { roomsApi, useAsyncData, toastApiError } from '@/lib/api';
+import { fetchLiveSessions } from '@/lib/api/sessions';
 import { toast, Toaster } from 'sonner';
 import { ZONES, type ZoneSession } from '@/data/zones';
 
@@ -42,110 +44,39 @@ type DashboardConfig = {
   kpis: KPI[];
 };
 
-const initialRooms: Room[] = [
-  {
-    id: 'room-001',
-    name: 'Room 1',
-    type: 'Standard',
-    capacity: 2,
-    status: 'occupied',
-    currentCustomer: 'Mohamed K.',
-    game: 'FC 26',
-    sessionStart: '14:30',
-    elapsedMinutes: 47,
-    controllers: 2,
-    quality: 3,
-    psModel: 'PS5',
-  },
-  {
-    id: 'room-002',
-    name: 'Room 2',
-    type: 'Standard',
-    capacity: 4,
-    status: 'occupied',
-    currentCustomer: 'Ahmed & Group',
-    game: 'GTA V',
-    sessionStart: '13:45',
-    elapsedMinutes: 92,
-    controllers: 4,
-    quality: 3,
-    psModel: 'PS5',
-  },
-  {
-    id: 'room-003',
-    name: 'Room 3',
-    type: 'Premium',
-    capacity: 4,
-    status: 'reserved',
-    currentCustomer: 'Omar Sherif',
-    game: 'Call of Duty',
-    sessionStart: '16:00',
-    elapsedMinutes: 0,
-    controllers: 4,
-    quality: 4,
-    psModel: 'PS5',
-  },
-  {
-    id: 'room-004',
-    name: 'Room 4',
-    type: 'VIP',
-    capacity: 6,
-    status: 'occupied',
-    currentCustomer: 'Karim & Friends',
-    game: 'FC 26',
-    sessionStart: '14:00',
-    elapsedMinutes: 77,
-    controllers: 6,
-    quality: 5,
-    psModel: 'PS5 Pro',
-    note: 'VIP - Extra drinks requested',
-  },
-  {
-    id: 'room-005',
-    name: 'Room 5',
-    type: 'Standard',
-    capacity: 2,
-    status: 'available',
-    controllers: 2,
-    quality: 2,
-    psModel: 'PS4',
-  },
-  {
-    id: 'room-006',
-    name: 'Room 6',
-    type: 'Premium',
-    capacity: 4,
-    status: 'occupied',
-    currentCustomer: 'Youssef M.',
-    game: 'PES 2024',
-    sessionStart: '15:10',
-    elapsedMinutes: 27,
-    controllers: 2,
-    quality: 4,
-    psModel: 'PS5',
-  },
-  {
-    id: 'room-007',
-    name: 'Room 7',
-    type: 'Standard',
-    capacity: 2,
-    status: 'maintenance',
-    controllers: 2,
-    quality: 2,
-    psModel: 'PS4',
-    note: 'Controller #07 damaged',
-  },
-  {
-    id: 'room-008',
-    name: 'Room 8',
-    type: 'VIP',
-    capacity: 8,
-    status: 'available',
-    controllers: 8,
-    quality: 5,
-    psModel: 'PS5 Pro',
-  },
-];
+const BACKEND_STATUS: Record<Room['status'], 'Available' | 'Occupied' | 'Reserved' | 'Maintenance'> = {
+  available: 'Available',
+  occupied: 'Occupied',
+  reserved: 'Reserved',
+  maintenance: 'Maintenance',
+};
+
+/** Real rooms from the backend, enriched with any live session on them. */
+async function loadDashboardRooms(): Promise<Room[]> {
+  const [rooms, sessions] = await Promise.all([
+    roomsApi.list(),
+    fetchLiveSessions().catch(() => []),
+  ]);
+  return rooms.map((r) => {
+    const session = sessions.find(
+      (s) => s.roomId === r.id && (s.status === 'active' || s.status === 'paused')
+    );
+    return {
+      id: r.id,
+      name: r.name,
+      type: r.roomType,
+      capacity: r.capacity,
+      status: r.status.toLowerCase() as Room['status'],
+      currentCustomer: session?.customer,
+      game: session?.game,
+      sessionStart: session?.startTime,
+      elapsedMinutes: session?.startMinutesAgo,
+      controllers: r.controllers,
+      quality: 4,
+      psModel: r.psModel,
+    };
+  });
+}
 
 function roomTypeForZone(zone: ZoneSession): Room['type'] {
   if (zone.zoneType === 'playstation') return 'Standard';
@@ -457,7 +388,29 @@ export default function StaffDashboardContent() {
   const role = (useRole() ?? 'staff') as DashboardRole;
   const config = configByRole[role];
   const [zones, setZones] = useState<ZoneSession[]>(() => structuredClone(ZONES));
-  const [rooms, setRooms] = useState<Room[]>(initialRooms);
+  const { data: backendRooms } = useAsyncData(loadDashboardRooms, []);
+  const [rooms, setRooms] = useState<Room[]>([]);
+
+  useEffect(() => {
+    if (backendRooms) setRooms(backendRooms);
+  }, [backendRooms]);
+
+  const handleRoomStatusChange = (roomId: string, status: Room['status'], note?: string) => {
+    setRooms((prev) =>
+      prev.map((r) =>
+        r.id === roomId
+          ? { ...r, status, note: note ?? (status === 'available' ? undefined : r.note) }
+          : r
+      )
+    );
+    roomsApi
+      .update(roomId, { status: BACKEND_STATUS[status] })
+      .then(() => toast.success(`${status.charAt(0).toUpperCase() + status.slice(1)} saved`))
+      .catch((err) => {
+        toastApiError(err);
+        if (backendRooms) setRooms(backendRooms); // revert on failure
+      });
+  };
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedZone, setSelectedZone] = useState<ZoneSession | null>(null);
@@ -499,7 +452,7 @@ export default function StaffDashboardContent() {
           <QuickStatsRow />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-              <RoomStatusGrid rooms={rooms} />
+              <RoomStatusGrid rooms={rooms} onRoomStatusChange={handleRoomStatusChange} />
               <ActiveSessionsList sessions={activeSessions} />
             </div>
             <div className="lg:col-span-1 space-y-4">
@@ -535,22 +488,17 @@ export default function StaffDashboardContent() {
     <DashboardLayout config={config} onStartSession={() => setQuickMenuOpen(true)}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <SimpleRoomGrid
-          rooms={rooms}
-          onSelect={setSelectedRoom}
-          onRoomStatusChange={(roomId, status, note) => {
-            setRooms((prev) =>
-              prev.map((r) =>
-                r.id === roomId ? { ...r, status, note: note ?? (status === 'available' ? undefined : r.note) } : r
-              )
-            );
-            setSelectedRoom((cur) =>
-              cur && cur.id === roomId
-                ? { ...cur, status, note: note ?? (status === 'available' ? undefined : cur.note) }
-                : cur
-            );
-          }}
-        />
+          {rooms.length === 0 ? (
+            <div className="glass-panel rounded-xl p-16 text-center text-sm text-muted-foreground">
+              Connecting to the floor…
+            </div>
+          ) : (
+            <SimpleRoomGrid
+              rooms={rooms}
+              onSelect={setSelectedRoom}
+              onRoomStatusChange={handleRoomStatusChange}
+            />
+          )}
         </div>
         <div className="lg:col-span-1 space-y-4">
           {role === 'manager' ? (
