@@ -164,18 +164,20 @@ export default function ActiveSessionsList({ sessions }: ActiveSessionsListProps
                   </td>
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
+                      <Link
+                        href="/live-sessions"
                         title="Add product"
                         className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                       >
                         <ShoppingCart size={13} />
-                      </button>
-                      <button
+                      </Link>
+                      <Link
+                        href="/live-sessions"
                         title="Pause session"
                         className="p-1.5 rounded-lg bg-warning/10 text-warning hover:bg-warning/20 transition-colors"
                       >
                         <Pause size={13} />
-                      </button>
+                      </Link>
                       <Link
                         href="/live-sessions"
                         title="End session & pay"

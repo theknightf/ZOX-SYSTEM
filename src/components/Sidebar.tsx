@@ -201,6 +201,7 @@ interface SidebarContentProps {
   onSwitchAccount: () => void;
   onSignOut: () => void;
   onToggleCollapsed: () => void;
+  onStartSession: () => void;
 }
 
 function SidebarContent({
@@ -217,6 +218,7 @@ function SidebarContent({
   onSwitchAccount,
   onSignOut,
   onToggleCollapsed,
+  onStartSession,
 }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full">
@@ -240,7 +242,12 @@ function SidebarContent({
       {/* CTA */}
       {!collapsed && (
         <div className="px-4 py-3">
-          <button className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider text-xs py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-150 active:scale-95 shadow-[0_0_18px_rgba(139,92,246,0.25)] hover:shadow-[0_0_26px_rgba(139,92,246,0.4)]">
+          <button
+            onClick={() => {
+              onStartSession();
+            }}
+            className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider text-xs py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-150 active:scale-95 shadow-[0_0_18px_rgba(139,92,246,0.25)] hover:shadow-[0_0_26px_rgba(139,92,246,0.4)]"
+          >
             <span className="text-base leading-none">+</span> Start Session
           </button>
         </div>
@@ -468,6 +475,10 @@ export default function Sidebar({ currentPath, role = 'staff' }: SidebarProps) {
               onSwitchAccount={() => setSwitchOpen(true)}
               onSignOut={handleSignOut}
               onToggleCollapsed={() => setCollapsed(!collapsed)}
+              onStartSession={() => {
+                setMobileOpen(false);
+                router.push('/live-sessions');
+              }}
             />
           </div>
         </div>
@@ -491,6 +502,7 @@ export default function Sidebar({ currentPath, role = 'staff' }: SidebarProps) {
           onSwitchAccount={() => setSwitchOpen(true)}
           onSignOut={handleSignOut}
           onToggleCollapsed={() => setCollapsed(!collapsed)}
+          onStartSession={() => router.push('/live-sessions')}
         />
       </aside>
     </>

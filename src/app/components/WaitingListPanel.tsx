@@ -1,5 +1,8 @@
+'use client';
 import React from 'react';
 import { Clock, Users, Gamepad2, Bell, UserCheck } from 'lucide-react';
+import Link from 'next/link';
+import { toast } from 'sonner';
 
 const waiting = [
   {
@@ -35,6 +38,14 @@ const waiting = [
 ];
 
 export default function WaitingListPanel() {
+  const handleNotify = (customer: string) => {
+    toast.success(`Notification sent to ${customer}`);
+  };
+
+  const handleCheckIn = (customer: string) => {
+    toast.success(`${customer} checked in — assign a room from Live Sessions`);
+  };
+
   return (
     <div className="glass-panel rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
@@ -79,12 +90,14 @@ export default function WaitingListPanel() {
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   title="Notify customer"
+                  onClick={() => handleNotify(w.customer)}
                   className="p-1 rounded-md bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
                 >
                   <Bell size={11} />
                 </button>
                 <button
                   title="Check in customer"
+                  onClick={() => handleCheckIn(w.customer)}
                   className="p-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                 >
                   <UserCheck size={11} />
@@ -94,9 +107,12 @@ export default function WaitingListPanel() {
           </div>
         ))}
       </div>
-      <button className="w-full mt-3 py-2 bg-muted border border-border rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-border/60 transition-colors">
+      <Link
+        href="/waiting-list"
+        className="block w-full mt-3 py-2 bg-muted border border-border rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-border/60 transition-colors text-center"
+      >
         Manage Waiting List
-      </button>
+      </Link>
     </div>
   );
 }

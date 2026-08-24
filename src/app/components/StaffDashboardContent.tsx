@@ -16,6 +16,7 @@ import QuickActionModal, {
   type QuickActionResponse,
 } from '@/app/live-sessions/components/QuickActionModal';
 import { useRole } from '@/contexts/AuthContext';
+import RoomQuickActions from '@/components/rooms/RoomQuickActions';
 import { toast, Toaster } from 'sonner';
 import { ZONES, type ZoneSession } from '@/data/zones';
 
@@ -246,7 +247,15 @@ function DashboardLayout({
   );
 }
 
-function SimpleRoomGrid({ rooms, onSelect }: { rooms: Room[]; onSelect: (room: Room) => void }) {
+function SimpleRoomGrid({
+  rooms,
+  onSelect,
+  onRoomStatusChange,
+}: {
+  rooms: Room[];
+  onSelect: (room: Room) => void;
+  onRoomStatusChange: (roomId: string, status: Room['status'], note?: string) => void;
+}) {
   const statusClass: Record<Room['status'], string> = {
     available: 'bg-success text-success',
     occupied: 'bg-danger text-danger',
@@ -259,15 +268,20 @@ function SimpleRoomGrid({ rooms, onSelect }: { rooms: Room[]; onSelect: (room: R
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-base font-semibold text-foreground">Room Grid</h2>
-          <p className="text-xs text-muted-foreground">Tap a room for details</p>
+          <p className="text-xs text-muted-foreground">Tap a room for details · Quick Actions on every card</p>
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         {rooms.map((room) => (
-          <button
+          <div
             key={room.id}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(room)}
-            className="text-left glass-panel rounded-xl p-4 hover:border-primary/40 transition-all duration-200"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') onSelect(room);
+            }}
+            className="text-left glass-panel rounded-xl p-4 hover:border-primary/40 transition-all duration-200 cursor-pointer"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -284,7 +298,14 @@ function SimpleRoomGrid({ rooms, onSelect }: { rooms: Room[]; onSelect: (room: R
                 {room.status}
               </span>
             </div>
-          </button>
+            {/* Quick Actions — independent from the card click */}
+            <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+              <RoomQuickActions
+                room={room}
+                onStatusChange={(next, note) => onRoomStatusChange(room.id, next, note)}
+              />
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -432,7 +453,7 @@ export default function StaffDashboardContent() {
   const role = (useRole() ?? 'staff') as DashboardRole;
   const config = configByRole[role];
   const [zones, setZones] = useState<ZoneSession[]>(() => structuredClone(ZONES));
-  const [rooms] = useState<Room[]>(initialRooms);
+  const [rooms, setRooms] = useState<Room[]>(initialRooms);
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedZone, setSelectedZone] = useState<ZoneSession | null>(null);
@@ -510,7 +531,22 @@ export default function StaffDashboardContent() {
     <DashboardLayout config={config} onStartSession={() => setQuickMenuOpen(true)}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <SimpleRoomGrid rooms={rooms} onSelect={setSelectedRoom} />
+          <SimpleRoomGrid
+          rooms={rooms}
+          onSelect={setSelectedRoom}
+          onRoomStatusChange={(roomId, status, note) => {
+            setRooms((prev) =>
+              prev.map((r) =>
+                r.id === roomId ? { ...r, status, note: note ?? (status === 'available' ? undefined : r.note) } : r
+              )
+            );
+            setSelectedRoom((cur) =>
+              cur && cur.id === roomId
+                ? { ...cur, status, note: note ?? (status === 'available' ? undefined : cur.note) }
+                : cur
+            );
+          }}
+        />
         </div>
         <div className="lg:col-span-1 space-y-4">
           {role === 'manager' ? (

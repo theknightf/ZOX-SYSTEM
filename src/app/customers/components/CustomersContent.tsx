@@ -45,6 +45,8 @@ export default function CustomersContent() {
   });
 
   useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) setSearchQuery(q);
     return () => {
       if (confirmRef.current) window.clearTimeout(confirmRef.current);
     };

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Gamepad2, Users, Clock, Zap, Star } from 'lucide-react';
 import Link from 'next/link';
+import RoomQuickActions from '@/components/rooms/RoomQuickActions';
 
 type RoomStatus = 'available' | 'occupied' | 'reserved' | 'maintenance';
 type RoomType = 'Standard' | 'Premium' | 'VIP';
@@ -24,6 +25,7 @@ export interface Room {
 
 interface RoomStatusGridProps {
   rooms?: Room[] | null;
+  onRoomStatusChange?: (roomId: string, status: Room['status'], note?: string) => void;
 }
 
 const statusConfig: Record<
@@ -87,12 +89,21 @@ function QualityStars({ quality }: { quality: number }) {
   );
 }
 
-export default function RoomStatusGrid({ rooms = [] }: RoomStatusGridProps) {
+export default function RoomStatusGrid({ rooms = [], onRoomStatusChange }: RoomStatusGridProps) {
   const [filter, setFilter] = useState<RoomStatus | 'all'>('all');
-  const safeRooms = Array.isArray(rooms) ? rooms : [];
-  const validRooms = safeRooms.filter(
-    (r): r is Room => r != null && typeof r === 'object' && 'status' in r
+  const [qaRooms, setQaRooms] = useState<Record<string, { status: Room['status']; note?: string }>>(
+    {}
   );
+  // Local overlay so Quick Actions status changes reflect instantly; the host
+  // (dashboard) can persist via onRoomStatusChange when it owns real state.
+  const applyLocal = (room: Room, next: Room['status'], note?: string) => {
+    setQaRooms((prev) => ({ ...prev, [room.id]: { status: next, note: note ?? room.note } }));
+    onRoomStatusChange?.(room.id, next, note);
+  };
+  const safeRooms = Array.isArray(rooms) ? rooms : [];
+  const validRooms = safeRooms
+    .filter((r): r is Room => r != null && typeof r === 'object' && 'status' in r)
+    .map((r) => (qaRooms[r.id] ? { ...r, ...qaRooms[r.id], id: r.id } : r));
 
   const filtered = filter === 'all' ? validRooms : validRooms.filter((r) => r.status === filter);
   const counts = {
@@ -205,6 +216,14 @@ export default function RoomStatusGrid({ rooms = [] }: RoomStatusGridProps) {
                   Quick Assign
                 </Link>
               )}
+
+              {/* Quick Actions — available for every room status */}
+              <div className="mt-2">
+                <RoomQuickActions
+                  room={room}
+                  onStatusChange={(next, note) => applyLocal(room, next, note)}
+                />
+              </div>
             </div>
           );
         })}

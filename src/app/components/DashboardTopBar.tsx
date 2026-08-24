@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, Bell, Download, ChevronDown } from 'lucide-react';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +9,14 @@ import { initialsFor } from '@/lib/demoAccounts';
 export default function DashboardTopBar() {
   const [currentTime, setCurrentTime] = useState('');
   const [currentDate, setCurrentDate] = useState('');
+  const [query, setQuery] = useState('');
+  const router = useRouter();
   const { user } = useAuth();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(query.trim() ? `/customers?q=${encodeURIComponent(query.trim())}` : '/customers');
+  };
 
   useEffect(() => {
     const update = () => {
@@ -46,6 +54,11 @@ export default function DashboardTopBar() {
         />
         <input
           type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSearch(e);
+          }}
           placeholder="Search console ID or customer..."
           className="w-full bg-card border border-border rounded-lg pl-9 pr-3 h-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-150"
         />
