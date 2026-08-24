@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   X,
   Loader2,
+  Settings2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -380,9 +381,14 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
           e.stopPropagation();
           setOpen(true);
         }}
+        onKeyDown={(e) => e.stopPropagation()}
         title="Quick Actions"
-        className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-border bg-card text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all ${className}`}
+        className={`group w-full flex items-center justify-center gap-1.5 h-8 rounded-lg border border-primary/25 bg-primary/10 text-[11px] font-bold uppercase tracking-wider text-primary hover:bg-primary/15 hover:border-primary/40 active:scale-[0.98] transition-all ${className}`}
       >
+        <Settings2
+          size={13}
+          className="transition-transform duration-200 group-hover:rotate-90"
+        />
         Quick Actions
       </button>
 
@@ -393,40 +399,41 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
           onClick={closeAll}
         >
           <div
-            className="glass-panel pop-in w-full max-w-md rounded-2xl overflow-hidden"
+            className="glass-panel pop-in w-full max-w-md rounded-2xl overflow-hidden flex flex-col max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <div>
-                <h3 className="text-base font-bold text-foreground">{room.name}</h3>
-                <span
-                  className={`status-badge mt-1 ${statusBadge[room.status]} capitalize`}
-                >
-                  {room.status}
-                </span>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-foreground truncate">{room.name}</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`status-badge capitalize ${statusBadge[room.status]}`}>
+                    {room.status}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{room.type}</span>
+                </div>
               </div>
               <button
                 onClick={closeAll}
-                className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                className="w-8 h-8 shrink-0 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Close quick actions"
               >
                 <X size={18} />
               </button>
             </div>
-            <div className="p-5 grid grid-cols-2 gap-2.5">
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto scrollbar-thin">
               {actions.map((a) => (
                 <button
                   key={a.id}
                   disabled={busyAction !== null}
                   onClick={() => void runAction(a.id)}
-                  className={`flex items-center gap-2.5 px-3 py-3 rounded-xl border text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 text-left ${toneClasses[a.tone]}`}
+                  className={`flex items-center gap-2.5 px-3 py-3 rounded-xl border text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-left min-w-0 ${toneClasses[a.tone]}`}
                 >
                   {busyAction === a.id ? (
                     <Loader2 size={16} className="animate-spin shrink-0" />
                   ) : (
                     <span className="shrink-0">{a.icon}</span>
                   )}
-                  <span className="leading-tight">{a.label}</span>
+                  <span className="leading-tight truncate">{a.label}</span>
                 </button>
               ))}
             </div>

@@ -145,7 +145,7 @@ export default function RoomStatusGrid({ rooms = [], onRoomStatusChange }: RoomS
           return (
             <div
               key={room.id}
-              className={`glass-panel rounded-xl p-4 transition-all duration-200 cursor-pointer hover:border-primary/40 ${sc.cardClass} ${tc.cardClass ?? ''}`}
+              className={`glass-panel rounded-xl p-4 flex flex-col transition-all duration-200 cursor-pointer hover:border-primary/40 ${sc.cardClass} ${tc.cardClass ?? ''}`}
             >
               <div className="flex items-start justify-between mb-2">
                 <div>
@@ -176,8 +176,10 @@ export default function RoomStatusGrid({ rooms = [], onRoomStatusChange }: RoomS
                 <QualityStars quality={room.quality} />
               </div>
 
+              <div className="flex-1" />
+
               {room.status === 'occupied' && room.currentCustomer && (
-                <div className="bg-background/60 rounded-lg p-2 space-y-1 border border-border/50">
+                <div className="bg-background/60 rounded-lg p-2 space-y-1 border border-border/50 mb-2">
                   <p className="text-xs font-semibold text-foreground truncate">
                     {room.currentCustomer}
                   </p>
@@ -193,7 +195,7 @@ export default function RoomStatusGrid({ rooms = [], onRoomStatusChange }: RoomS
               )}
 
               {room.status === 'reserved' && room.currentCustomer && (
-                <div className="bg-background/60 rounded-lg p-2 border border-warning/20">
+                <div className="bg-background/60 rounded-lg p-2 border border-warning/20 mb-2">
                   <p className="text-xs font-semibold text-foreground truncate">
                     {room.currentCustomer}
                   </p>
@@ -202,23 +204,22 @@ export default function RoomStatusGrid({ rooms = [], onRoomStatusChange }: RoomS
               )}
 
               {room.status === 'maintenance' && room.note && (
-                <div className="bg-danger/5 rounded-lg p-2 border border-danger/10">
+                <div className="bg-danger/5 rounded-lg p-2 border border-danger/10 mb-2">
                   <p className="text-xs text-danger">{room.note}</p>
                 </div>
               )}
 
-              {room.status === 'available' && (
-                <Link
-                  href="/reservations"
-                  className="w-full mt-1 py-1.5 bg-accent/10 border border-accent/20 text-accent text-xs font-semibold rounded-lg hover:bg-accent/20 hover:shadow-lg hover:shadow-accent/10 transition-all flex items-center justify-center"
-                >
-                  <Zap size={11} className="mr-1" />
-                  Quick Assign
-                </Link>
-              )}
-
               {/* Quick Actions — available for every room status */}
-              <div className="mt-2">
+              <div className={room.status === 'available' ? 'space-y-1.5' : ''}>
+                {room.status === 'available' && (
+                  <Link
+                    href="/reservations"
+                    className="w-full py-1.5 bg-accent/10 border border-accent/20 text-accent text-xs font-semibold rounded-lg hover:bg-accent/20 hover:shadow-lg hover:shadow-accent/10 transition-all flex items-center justify-center"
+                  >
+                    <Zap size={11} className="mr-1" />
+                    Quick Assign
+                  </Link>
+                )}
                 <RoomQuickActions
                   room={room}
                   onStatusChange={(next, note) => applyLocal(room, next, note)}

@@ -281,7 +281,7 @@ function SimpleRoomGrid({
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') onSelect(room);
             }}
-            className="text-left glass-panel rounded-xl p-4 hover:border-primary/40 transition-all duration-200 cursor-pointer"
+            className="text-left glass-panel rounded-xl p-4 hover:border-primary/40 transition-all duration-200 cursor-pointer flex flex-col"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -299,7 +299,11 @@ function SimpleRoomGrid({
               </span>
             </div>
             {/* Quick Actions — independent from the card click */}
-            <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="mt-auto pt-3"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
               <RoomQuickActions
                 room={room}
                 onStatusChange={(next, note) => onRoomStatusChange(room.id, next, note)}
