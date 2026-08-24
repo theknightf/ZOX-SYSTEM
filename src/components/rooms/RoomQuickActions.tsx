@@ -60,31 +60,31 @@ interface RoomActionDef {
 /** Centralized action definitions per room status — single source of truth. */
 const ROOM_ACTIONS: Record<RoomStatus, RoomActionDef[]> = {
   available: [
-    { id: 'start-session', label: 'Start Session', icon: <Play size={16} />, tone: 'accent' },
-    { id: 'reserve-room', label: 'Reserve Room', icon: <CalendarPlus size={16} />, tone: 'primary' },
-    { id: 'mark-cleaning', label: 'Mark as Cleaning', icon: <SprayCan size={16} />, tone: 'warning' },
-    { id: 'mark-maintenance', label: 'Put Under Maintenance', icon: <Wrench size={16} />, tone: 'neutral' },
+    { id: 'start-session', label: 'Start Session', icon: <Play size={22} />, tone: 'accent' },
+    { id: 'reserve-room', label: 'Reserve Room', icon: <CalendarPlus size={22} />, tone: 'primary' },
+    { id: 'mark-cleaning', label: 'Mark as Cleaning', icon: <SprayCan size={22} />, tone: 'warning' },
+    { id: 'mark-maintenance', label: 'Put Under Maintenance', icon: <Wrench size={22} />, tone: 'neutral' },
   ],
   occupied: [
-    { id: 'end-session', label: 'End Session', icon: <Square size={16} />, tone: 'danger' },
-    { id: 'add-drinks', label: 'Add Drinks', icon: <CupSoda size={16} />, tone: 'primary' },
-    { id: 'add-guest', label: 'Add Guest', icon: <UserPlus size={16} />, tone: 'primary' },
-    { id: 'pause-session', label: 'Pause Session', icon: <Pause size={16} />, tone: 'warning' },
-    { id: 'transfer-room', label: 'Transfer Room', icon: <ArrowLeftRight size={16} />, tone: 'neutral' },
-    { id: 'print-receipt', label: 'Print Receipt', icon: <Printer size={16} />, tone: 'neutral' },
-    { id: 'edit-notes', label: 'Add/Edit Notes', icon: <StickyNote size={16} />, tone: 'neutral' },
+    { id: 'end-session', label: 'End Session', icon: <Square size={22} />, tone: 'danger' },
+    { id: 'add-drinks', label: 'Add Drinks', icon: <CupSoda size={22} />, tone: 'primary' },
+    { id: 'add-guest', label: 'Add Guest', icon: <UserPlus size={22} />, tone: 'primary' },
+    { id: 'pause-session', label: 'Pause Session', icon: <Pause size={22} />, tone: 'warning' },
+    { id: 'transfer-room', label: 'Transfer Room', icon: <ArrowLeftRight size={22} />, tone: 'neutral' },
+    { id: 'print-receipt', label: 'Print Receipt', icon: <Printer size={22} />, tone: 'neutral' },
+    { id: 'edit-notes', label: 'Add/Edit Notes', icon: <StickyNote size={22} />, tone: 'neutral' },
   ],
   reserved: [
-    { id: 'start-session', label: 'Start Session', icon: <Play size={16} />, tone: 'accent' },
-    { id: 'edit-reservation', label: 'Edit Reservation', icon: <CalendarCog size={16} />, tone: 'primary' },
-    { id: 'cancel-reservation', label: 'Cancel Reservation', icon: <Ban size={16} />, tone: 'danger' },
-    { id: 'mark-cleaning', label: 'Mark as Cleaning', icon: <SprayCan size={16} />, tone: 'warning' },
-    { id: 'mark-maintenance', label: 'Put Under Maintenance', icon: <Wrench size={16} />, tone: 'neutral' },
+    { id: 'start-session', label: 'Start Session', icon: <Play size={22} />, tone: 'accent' },
+    { id: 'edit-reservation', label: 'Edit Reservation', icon: <CalendarCog size={22} />, tone: 'primary' },
+    { id: 'cancel-reservation', label: 'Cancel Reservation', icon: <Ban size={22} />, tone: 'danger' },
+    { id: 'mark-cleaning', label: 'Mark as Cleaning', icon: <SprayCan size={22} />, tone: 'warning' },
+    { id: 'mark-maintenance', label: 'Put Under Maintenance', icon: <Wrench size={22} />, tone: 'neutral' },
   ],
   maintenance: [
-    { id: 'mark-available', label: 'Mark as Available', icon: <CheckCircle2 size={16} />, tone: 'accent' },
-    { id: 'mark-cleaning', label: 'Mark as Cleaning', icon: <SprayCan size={16} />, tone: 'warning' },
-    { id: 'add-maintenance-note', label: 'Add Maintenance Note', icon: <StickyNote size={16} />, tone: 'neutral' },
+    { id: 'mark-available', label: 'Mark as Available', icon: <CheckCircle2 size={22} />, tone: 'accent' },
+    { id: 'mark-cleaning', label: 'Mark as Cleaning', icon: <SprayCan size={22} />, tone: 'warning' },
+    { id: 'add-maintenance-note', label: 'Add Maintenance Note', icon: <StickyNote size={22} />, tone: 'neutral' },
   ],
 };
 
@@ -406,7 +406,7 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
       {/* Actions modal */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
           onClick={closeAll}
           onKeyDown={(e) => e.stopPropagation()}
         >
@@ -414,37 +414,39 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
             role="dialog"
             aria-modal="true"
             aria-label={`Quick actions for ${room.name}`}
-            className="glass-panel pop-in w-full max-w-md rounded-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            className="glass-panel pop-in w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col max-h-[85vh] my-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+            <div className="flex items-center justify-between px-7 py-5 border-b border-border shrink-0">
               <div className="min-w-0">
-                <h3 className="text-base font-bold text-foreground truncate">{room.name}</h3>
-                <div className="flex items-center gap-2 mt-1">
+                <h3 className="text-xl font-extrabold tracking-tight text-foreground truncate">
+                  {room.name}
+                </h3>
+                <div className="flex items-center gap-2.5 mt-1.5">
                   <span className={`status-badge capitalize ${statusBadge[room.status]}`}>
                     {room.status}
                   </span>
-                  <span className="text-xs text-muted-foreground">{room.type}</span>
+                  <span className="text-sm text-muted-foreground">{room.type}</span>
                 </div>
               </div>
               <button
                 onClick={closeAll}
-                className="w-8 h-8 shrink-0 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                className="w-9 h-9 shrink-0 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Close quick actions"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
-            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto scrollbar-thin">
+            <div className="p-7 grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto scrollbar-thin">
               {actions.map((a) => (
                 <button
                   key={a.id}
                   disabled={processingAction !== null}
                   onClick={() => void runAction(a.id)}
-                  className={`flex items-center gap-2.5 px-3 py-3 rounded-xl border text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-left min-w-0 ${toneClasses[a.tone]}`}
+                  className={`flex items-center gap-3.5 px-5 py-5 rounded-xl border text-base font-bold transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed text-left min-w-0 ${toneClasses[a.tone]}`}
                 >
                   {processingAction === a.id ? (
-                    <Loader2 size={16} className="animate-spin shrink-0" />
+                    <Loader2 size={20} className="animate-spin shrink-0" />
                   ) : (
                     <span className="shrink-0">{a.icon}</span>
                   )}
