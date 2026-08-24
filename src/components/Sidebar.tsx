@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import AppLogo from '@/components/ui/AppLogo';
+import ZoxMark from '@/components/ui/ZoxMark';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import AccountSwitcher from '@/components/ui/AccountSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
@@ -222,42 +222,42 @@ function SidebarContent({
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div
-        className={`flex items-center border-b border-border transition-all duration-300 ${collapsed ? 'justify-center px-3 py-4' : 'px-4 py-4 gap-3'}`}
+        className={`flex items-center border-b border-border transition-all duration-300 ${collapsed ? 'justify-center px-3 py-5' : 'px-5 py-5 gap-3'}`}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <AppLogo size={32} className="drop-shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
-          {!collapsed && (
-            <div className="min-w-0">
-              <span className="font-black text-lg tracking-tight">
-                <span className="text-gradient">Zoox</span>
-              </span>
-              <p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-muted-foreground truncate">
-                PlayStation Center
-              </p>
-            </div>
-          )}
-        </div>
+        <ZoxMark size={30} />
+        {!collapsed && (
+          <div className="min-w-0">
+            <span className="font-bold text-lg text-primary tracking-[0.25em] leading-none">
+              ZOX
+            </span>
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-muted-foreground mt-1 truncate">
+              Gaming Center OS
+            </p>
+          </div>
+        )}
       </div>
 
       {/* CTA */}
       {!collapsed && (
         <div className="px-4 py-3">
-          <button className="w-full bg-primary text-primary-foreground font-semibold text-sm py-2.5 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-all duration-150 glow-primary active:scale-95">
-            <span className="text-lg leading-none">+</span> New Session
+          <button className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider text-xs py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-150 active:scale-95 shadow-[0_0_18px_rgba(139,92,246,0.25)] hover:shadow-[0_0_26px_rgba(139,92,246,0.4)]">
+            <span className="text-base leading-none">+</span> Start Session
           </button>
         </div>
       )}
 
       {/* Role badge */}
       {!collapsed && (
-        <div className="px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
-            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+        <div className="px-4 pb-3">
+          <div className="flex items-center gap-2 bg-card/60 border border-border rounded-lg px-3 py-2">
+            <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center flex-shrink-0">
               <span className="text-xs font-bold text-primary">{displayInitials}</span>
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
-              <p className={`text-xs font-medium ${roleColor}`}>{roleLabel}</p>
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${roleColor}`}>
+                {roleLabel}
+              </p>
             </div>
             <Bell size={14} className="ml-auto text-muted-foreground flex-shrink-0" />
           </div>
@@ -268,35 +268,57 @@ function SidebarContent({
       <nav
         ref={navRef}
         onScroll={onNavScroll}
-        className="flex-1 overflow-y-auto scrollbar-thin py-3 px-2"
+        className="flex-1 overflow-y-auto scrollbar-thin py-3 px-3"
       >
         {Object.entries(groupedNav).map(([section, items], sectionIdx) => (
-          <div key={`section-${section}`} className={sectionIdx > 0 ? 'mt-4' : ''}>
+          <div key={`section-${section}`} className={sectionIdx > 0 ? 'mt-6' : ''}>
             {!collapsed && (
-              <p className="section-label px-3 mb-1.5">{sectionLabels[section] || section}</p>
+              <p className="section-label px-3 mb-2">{sectionLabels[section] || section}</p>
             )}
             {items.map((item) => (
               <Link
                 key={`nav-${item.href}-${item.label}`}
                 href={item.href === '/staff-dashboard' ? '/' : item.href}
-                className={`nav-item mb-0.5 relative ${isActive(item.href) ? 'nav-item-active' : ''} ${collapsed ? 'justify-center px-2' : ''} hover:translate-x-0.5`}
+                className={`rail-item mb-0.5 px-3 py-2.5 ${isActive(item.href) ? 'rail-item-active' : 'text-muted-foreground hover:text-foreground hover:bg-card'} ${collapsed ? 'justify-center px-2' : ''}`}
                 title={collapsed ? item.label : undefined}
               >
                 <span className="flex-shrink-0">{item.icon}</span>
                 {!collapsed && <span className="truncate">{item.label}</span>}
                 {!collapsed && item.badge && item.badge > 0 ? (
-                  <span className="ml-auto bg-accent text-accent-foreground text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
+                  <span className="ml-auto bg-primary/15 text-primary text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 border border-primary/25">
                     {item.badge}
                   </span>
                 ) : null}
                 {collapsed && item.badge && item.badge > 0 ? (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
                 ) : null}
               </Link>
             ))}
           </div>
         ))}
       </nav>
+
+      {/* System status card */}
+      {!collapsed && (
+        <div className="mx-4 mb-3 p-3 rounded-xl bg-card/60 border border-border">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">
+              System Online
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <span className="text-muted-foreground text-[10px] block">Latency</span>
+              <span className="font-data-mono text-accent font-semibold">12ms</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-[10px] block">Uptime</span>
+              <span className="font-data-mono text-foreground font-semibold">99.8%</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom */}
       <div className="border-t border-border p-2">

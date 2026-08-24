@@ -52,8 +52,8 @@ const upcoming = [
 
 export default function UpcomingReservationsPanel() {
   return (
-    <div className="glass-panel rounded-xl p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="glass-panel rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border">
         <h2 className="text-sm font-semibold text-foreground">Upcoming Reservations</h2>
         <Link href="/reservations">
           <span className="text-xs text-primary font-semibold hover:underline cursor-pointer">
@@ -61,52 +61,46 @@ export default function UpcomingReservationsPanel() {
           </span>
         </Link>
       </div>
-      <div className="space-y-2">
-        {upcoming?.map((r) => (
-          <div
-            key={r?.id}
-            className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-colors ${
-              r?.minutesUntil <= 15
-                ? 'border-warning/30 bg-warning/5'
-                : 'border-border bg-muted/30 hover:border-border/60'
-            }`}
-          >
+      <div className="divide-y divide-border/50">
+        {upcoming?.map((r) => {
+          const soon = r?.minutesUntil <= 15;
+          return (
             <div
-              className={`flex-shrink-0 w-11 rounded-lg border flex flex-col items-center justify-center py-1.5 gap-0.5 ${
-                r?.minutesUntil <= 15
-                  ? 'border-warning/30 bg-warning/10'
-                  : 'border-border/60 bg-[#0a1626]'
-              }`}
+              key={r?.id}
+              className={`console-row flex items-center gap-3 px-4 py-3 ${soon ? 'bg-warning/5' : ''}`}
             >
-              <CalendarClock
-                size={12}
-                className={r?.minutesUntil <= 15 ? 'text-warning' : 'text-muted-foreground'}
-              />
-              <span className="text-[11px] font-bold font-data-mono text-foreground leading-none">
-                {r?.time}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-foreground truncate">{r?.customer}</p>
-              <p className="text-xs text-muted-foreground">
-                {r?.room} · {r?.game}
-              </p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                  <Users size={9} /> {r?.players}
+              <div
+                className={`flex-shrink-0 w-9 h-9 rounded-lg border flex flex-col items-center justify-center ${
+                  soon ? 'border-warning/30 bg-warning/10' : 'border-border bg-card'
+                }`}
+              >
+                <CalendarClock
+                  size={12}
+                  className={soon ? 'text-warning' : 'text-primary'}
+                />
+                <span className="text-[10px] font-bold font-data-mono text-foreground leading-none mt-0.5">
+                  {r?.time}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{r?.customer}</p>
+                <p className="text-xs text-muted-foreground">
+                  {r?.room} · {r?.game}
+                </p>
+              </div>
+              <div className="flex-shrink-0 text-right">
+                <span className="text-xs font-bold font-tabular text-muted-foreground flex items-center gap-1 justify-end">
+                  <Users size={10} /> {r?.players}
+                </span>
+                <span
+                  className={`text-[11px] font-bold ${soon ? 'text-warning' : 'text-accent'}`}
+                >
+                  in {r?.minutesUntil}m
                 </span>
               </div>
             </div>
-            <div className="flex-shrink-0 text-right">
-              <span
-                className={`text-xs font-bold font-tabular ${r?.minutesUntil <= 15 ? 'text-warning' : 'text-muted-foreground'}`}
-              >
-                {r?.minutesUntil}m
-              </span>
-              <p className="text-[10px] text-muted-foreground mt-0.5">until</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

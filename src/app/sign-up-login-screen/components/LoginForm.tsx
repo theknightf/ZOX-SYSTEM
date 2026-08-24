@@ -106,8 +106,8 @@ export default function LoginForm() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5">
-            Email address
+          <label className="block text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground mb-2 ml-1">
+            Operator Email
           </label>
           <div className="relative">
             <Mail
@@ -128,8 +128,10 @@ export default function LoginForm() {
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-sm font-semibold text-foreground">Password</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground ml-1">
+              Security Access Key
+            </label>
             <button type="button" className="text-xs text-primary font-semibold hover:underline">
               Forgot?
             </button>
@@ -175,13 +177,13 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-primary text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-150 hover:opacity-90 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed glow-primary"
+          className="w-full bg-primary text-white font-bold uppercase tracking-[0.14em] py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-150 hover:opacity-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(139,92,246,0.25)] hover:shadow-[0_0_30px_rgba(139,92,246,0.4)]"
         >
           {isLoading ? (
             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
             <>
-              Authenticate
+              Initialize System
               <ArrowRight size={16} />
             </>
           )}

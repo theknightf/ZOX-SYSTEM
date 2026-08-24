@@ -6,7 +6,6 @@ import {
   Gamepad2,
   PackageSearch,
   AlertCircle,
-  ChevronRight,
   Zap,
 } from 'lucide-react';
 
@@ -68,39 +67,33 @@ const actions = [
 export default function QuickActionsPanel({ onQuickAction }: QuickActionsPanelProps) {
   return (
     <div className="glass-panel rounded-xl p-4">
-      <h2 className="text-sm font-semibold text-foreground mb-3">Quick Actions</h2>
-      <div className="space-y-2">
-        {actions.map((action) =>
-          'action' in action ? (
-            <button
-              key={action.id}
-              onClick={onQuickAction}
-              className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-150 active:scale-95 text-left ${action.bg}`}
-            >
-              <span className={`flex-shrink-0 p-2 rounded-lg bg-black/20 ${action.color}`}>
+      <h2 className="text-sm font-semibold text-foreground mb-3">Quick Actions Hub</h2>
+      <div className="grid grid-cols-2 gap-3">
+        {actions.map((action) => {
+          const inner = (
+            <>
+              <span
+                className={`w-9 h-9 rounded-lg border flex items-center justify-center ${action.bg} ${action.color}`}
+              >
                 {action.icon}
               </span>
-              <span className={`text-xs font-semibold ${action.color} flex-1 leading-tight`}>
+              <span className="text-[11px] font-semibold text-foreground leading-tight text-center">
                 {action.label}
               </span>
-              <ChevronRight size={14} className="text-muted-foreground" />
+            </>
+          );
+          const cls =
+            'flex flex-col items-center justify-center gap-2 py-4 px-2 rounded-xl bg-card/60 border border-border hover:border-primary/40 transition-all duration-200 active:scale-95 group';
+          return 'action' in action ? (
+            <button key={action.id} onClick={onQuickAction} className={cls}>
+              {inner}
             </button>
           ) : (
-            <Link
-              key={action.id}
-              href={action.href}
-              className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-150 active:scale-95 ${action.bg}`}
-            >
-              <span className={`flex-shrink-0 p-2 rounded-lg bg-black/20 ${action.color}`}>
-                {action.icon}
-              </span>
-              <span className={`text-xs font-semibold ${action.color} flex-1 leading-tight`}>
-                {action.label}
-              </span>
-              <ChevronRight size={14} className="text-muted-foreground" />
+            <Link key={action.id} href={action.href} className={cls}>
+              {inner}
             </Link>
-          )
-        )}
+          );
+        })}
       </div>
     </div>
   );

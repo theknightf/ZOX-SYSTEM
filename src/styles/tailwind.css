@@ -530,6 +530,48 @@
   .spark-kicker {
     @apply inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-primary;
   }
+
+  /* ══════════════════════════════════════════
+     ZOX CONSOLE LAYER — rail · toolbar · stats
+     ══════════════════════════════════════════ */
+
+  /* Sidebar rail items (mockup: left accent bar + blurred glow) */
+  .rail-item {
+    @apply relative flex items-center gap-3 rounded-lg text-sm font-semibold tracking-tight transition-all duration-200 cursor-pointer;
+  }
+
+  .rail-item-active {
+    @apply text-primary bg-card/50;
+    box-shadow: inset 2px 0 0 var(--primary), -1px 0 6px color-mix(in srgb, var(--primary) 45%, transparent);
+    background-image: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--primary) 8%, transparent),
+      transparent 65%
+    );
+  }
+
+  /* Stat delta chip (+14.2% style) */
+  .stat-delta {
+    @apply inline-flex items-center gap-1 mt-2 text-[11px] font-bold px-1.5 py-0.5 rounded;
+  }
+
+  /* Gradient hairline on top of premium cards */
+  .hairline-top::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 999px 999px 0 0;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    opacity: 0.35;
+  }
+
+  /* Console table row hover */
+  .console-row {
+    @apply transition-colors hover:bg-card/40;
+  }
 }
 
 @keyframes fadeIn {

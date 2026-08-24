@@ -30,6 +30,7 @@ type KPI = {
   color: string;
   bg: string;
   border: string;
+  delta?: string;
 };
 
 type DashboardConfig = {
@@ -202,6 +203,7 @@ function DashboardLayout({
           <div className="pointer-events-none absolute -top-16 -right-10 w-56 h-56 rounded-full bg-primary/15 blur-3xl" />
           <div className="relative flex items-start justify-between gap-4 flex-wrap">
             <div>
+              <p className="section-label mb-1.5">Console Overview</p>
               <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tightest">
                 {config.headline}
               </h1>
@@ -210,7 +212,7 @@ function DashboardLayout({
             {config.showStartSession && (
               <button
                 onClick={onStartSession}
-                className="btn-primary px-6 py-3 rounded-xl text-base shadow-lg shadow-primary/30"
+                className="bg-primary text-primary-foreground font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-lg shadow-[0_0_18px_rgba(139,92,246,0.3)] hover:shadow-[0_0_28px_rgba(139,92,246,0.45)] transition-all active:scale-95 flex items-center gap-2"
               >
                 Start Session
               </button>
@@ -219,20 +221,21 @@ function DashboardLayout({
         </div>
 
         <div
-          className={`grid grid-cols-1 md:grid-cols-2 ${config.kpis.length > 2 ? 'xl:grid-cols-4' : ''} gap-3`}
+          className={`grid grid-cols-2 ${config.kpis.length > 2 ? 'xl:grid-cols-4' : ''} gap-5`}
         >
           {config.kpis.map((stat) => (
-            <div key={stat.id} className="glass-panel glow-hover rounded-xl p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className={`p-2 rounded-full ring-1 ${stat.bg} ${stat.border}`}>
-                  <span className={stat.color}>{stat.icon}</span>
-                </div>
+            <div key={stat.id} className="glass-panel glow-hover rounded-xl p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-muted-foreground font-semibold">{stat.label}</span>
+                <span className={stat.color}>{stat.icon}</span>
               </div>
-              <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
-                {stat.label}
-              </p>
-              <p className={`text-3xl font-extrabold font-tabular mt-1.5 ${stat.color}`}>{stat.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
+              <div className={`text-2xl lg:text-[1.7rem] font-extrabold tracking-tight font-tabular ${stat.color}`}>
+                {stat.value}
+              </div>
+              {stat.delta ? (
+                <span className="stat-delta text-primary bg-primary/10">{stat.delta}</span>
+              ) : null}
+              <p className="text-xs text-muted-foreground mt-1.5">{stat.sub}</p>
             </div>
           ))}
         </div>
@@ -347,7 +350,8 @@ const configByRole: Record<DashboardRole, DashboardConfig> = {
         label: 'Available Rooms',
         value: '2',
         sub: 'ready now',
-        icon: <DoorOpen size={20} />,
+        delta: '+1 vs last hr',
+        icon: <DoorOpen size={18} />,
         color: 'text-primary',
         bg: 'bg-primary/10',
         border: 'border-primary/20',
@@ -357,7 +361,7 @@ const configByRole: Record<DashboardRole, DashboardConfig> = {
         label: 'Waiting Customers',
         value: '3',
         sub: 'queued at desk',
-        icon: <Clock size={20} />,
+        icon: <Clock size={18} />,
         color: 'text-warning',
         bg: 'bg-warning/10',
         border: 'border-warning/20',
@@ -375,7 +379,8 @@ const configByRole: Record<DashboardRole, DashboardConfig> = {
         label: 'Available Rooms',
         value: '2',
         sub: 'ready now',
-        icon: <DoorOpen size={20} />,
+        delta: '+1 today',
+        icon: <DoorOpen size={18} />,
         color: 'text-primary',
         bg: 'bg-primary/10',
         border: 'border-primary/20',
@@ -385,7 +390,7 @@ const configByRole: Record<DashboardRole, DashboardConfig> = {
         label: 'Waiting Customers',
         value: '3',
         sub: 'queued at desk',
-        icon: <Clock size={20} />,
+        icon: <Clock size={18} />,
         color: 'text-warning',
         bg: 'bg-warning/10',
         border: 'border-warning/20',
@@ -395,7 +400,8 @@ const configByRole: Record<DashboardRole, DashboardConfig> = {
         label: "Today's Sessions",
         value: '18',
         sub: 'started so far',
-        icon: <Monitor size={20} />,
+        delta: '+14.2%',
+        icon: <Monitor size={18} />,
         color: 'text-accent',
         bg: 'bg-accent/10',
         border: 'border-accent/20',
@@ -405,7 +411,8 @@ const configByRole: Record<DashboardRole, DashboardConfig> = {
         label: 'Occupancy Rate',
         value: '72%',
         sub: 'rooms in use',
-        icon: <Building2 size={20} />,
+        delta: '+6% vs avg',
+        icon: <Building2 size={18} />,
         color: 'text-info',
         bg: 'bg-info/10',
         border: 'border-info/20',
