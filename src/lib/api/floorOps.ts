@@ -21,6 +21,7 @@ export interface UiRoom {
   controllers: number;
   hourlyRate: number;
   psModel: string;
+  category: 'playstation' | 'billiards' | 'cafe';
 }
 
 function mapRoom(row: RoomRow): UiRoom {
@@ -33,6 +34,7 @@ function mapRoom(row: RoomRow): UiRoom {
     controllers: row.controllers,
     hourlyRate: Number(row.hourly_rate),
     psModel: row.ps_model,
+    category: row.category ?? 'playstation',
   };
 }
 

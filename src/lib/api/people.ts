@@ -55,6 +55,60 @@ export const customersApi = {
     const rows = await fetchAll<CustomerRow>('customers', { order: 'name', ascending: true });
     return rows.map(mapCustomer);
   },
+  /** Exact-phone lookup. Uses the find_customer_by_phone RPC when present,
+   *  falling back to a direct filtered query (pre-migration databases). */
+  async getByPhone(phone: string): Promise<UiCustomer | null> {
+    const clean = phone.trim();
+    if (!clean) return null;
+    const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
+    const client = getSupabaseBrowserClient();
+    const { data: rpcRows, error } = await (
+      client.rpc as unknown as (
+        fn: string,
+        a: Record<string, unknown>
+      ) => Promise<{ data: Array<Record<string, unknown>> | null; error: { message: string } | null }>
+    )('find_customer_by_phone', { p_phone: clean });
+    if (!error && rpcRows && rpcRows.length > 0) {
+      const c = rpcRows[0];
+      return {
+        id: String(c.id),
+        name: String(c.name),
+        phone: String(c.phone ?? ''),
+        email: String(c.email ?? ''),
+        visits: Number(c.visits ?? 0),
+        totalSpent: Number(c.total_spent ?? 0),
+        loyaltyPoints: Number(c.loyalty_points ?? 0),
+        tier: (c.tier as UiCustomer['tier']) ?? 'Bronze',
+        lastVisit: '—',
+        notes: '',
+      };
+    }
+    const rows = await fetchAll<CustomerRow>('customers', { eq: { phone: clean }, limit: 2 });
+    if (rows.length === 0) return null;
+    return mapCustomer(rows[0]);
+  },
+  /** Creates the customer unless one with the same phone already exists
+   *  (guards against double-submit / race duplicates). Returns the id. */
+  async createIfAbsent(input: {
+    name: string;
+    phone: string;
+    email?: string;
+    notes?: string;
+  }): Promise<{ id: string; created: boolean }> {
+    const cleanPhone = input.phone.trim();
+    if (cleanPhone) {
+      const existing = await customersApi.getByPhone(cleanPhone);
+      if (existing) return { id: existing.id, created: false };
+    }
+    const v = customerSchema.parse({
+      name: input.name,
+      phone: cleanPhone || '—',
+      email: input.email?.trim() || '—',
+      notes: input.notes ?? '',
+    });
+    const row = await insertRow<CustomerRow>('customers', v);
+    return { id: row.id, created: true };
+  },
   async create(input: unknown): Promise<void> {
     const v = customerSchema.parse(input);
     await insertRow('customers', v);
