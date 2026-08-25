@@ -115,7 +115,7 @@ describe('RoomQuickActions', () => {
     fireEvent.click(screen.getByRole('button', { name: /quick actions/i }));
 
     const dialog = screen.getByRole('dialog');
-    ['End Session', 'Add Drinks', 'Pause Session', 'Print Receipt'].forEach((label) => {
+    ['Checkout', 'Add Drink', '+15 min Time', 'Pause Session', 'Print Receipt'].forEach((label) => {
       expect(within(dialog).getByText(label)).toBeInTheDocument();
     });
     expect(within(dialog).queryByText('Start Session')).not.toBeInTheDocument();
@@ -159,7 +159,7 @@ describe('RoomQuickActions', () => {
     fireEvent.click(screen.getByRole('button', { name: /quick actions/i }));
 
     const dialog = screen.getByRole('dialog');
-    fireEvent.click(within(dialog).getByText('End Session'));
+    fireEvent.click(within(dialog).getByText('Checkout'));
 
     await waitFor(() => {
       expect(within(dialog).getByText('Print Receipt').closest('button')).toBeDisabled();

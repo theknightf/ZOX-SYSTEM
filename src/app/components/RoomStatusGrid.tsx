@@ -1,7 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { Gamepad2, Users, Clock, Zap, Star } from 'lucide-react';
-import Link from 'next/link';
+import { Gamepad2, Users, Clock, Star } from 'lucide-react';
 import RoomQuickActions from '@/components/rooms/RoomQuickActions';
 
 type RoomStatus = 'available' | 'occupied' | 'reserved' | 'maintenance';
@@ -209,22 +208,12 @@ export default function RoomStatusGrid({ rooms = [], onRoomStatusChange }: RoomS
                 </div>
               )}
 
-              {/* Quick Actions — available for every room status */}
-              <div className={room.status === 'available' ? 'space-y-1.5' : ''}>
-                {room.status === 'available' && (
-                  <Link
-                    href="/reservations"
-                    className="w-full py-1.5 bg-accent/10 border border-accent/20 text-accent text-xs font-semibold rounded-lg hover:bg-accent/20 hover:shadow-lg hover:shadow-accent/10 transition-all flex items-center justify-center"
-                  >
-                    <Zap size={11} className="mr-1" />
-                    Quick Assign
-                  </Link>
-                )}
-                <RoomQuickActions
-                  room={room}
-                  onStatusChange={(next, note) => applyLocal(room, next, note)}
-                />
-              </div>
+              {/* Direct room actions — Start/Reserve/Checkout etc. per status */}
+              <RoomQuickActions
+                room={room}
+                variant="inline"
+                onStatusChange={(next, note) => applyLocal(room, next, note)}
+              />
             </div>
           );
         })}

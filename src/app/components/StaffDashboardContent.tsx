@@ -237,6 +237,7 @@ function SimpleRoomGrid({
             >
               <RoomQuickActions
                 room={room}
+                variant="inline"
                 onStatusChange={(next, note) => onRoomStatusChange(room.id, next, note)}
               />
             </div>

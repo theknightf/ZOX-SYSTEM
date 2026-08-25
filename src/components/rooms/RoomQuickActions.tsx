@@ -7,7 +7,7 @@ import {
   Wrench,
   Square,
   CupSoda,
-  UserPlus,
+  Clock,
   Pause,
   ArrowLeftRight,
   Printer,
@@ -27,6 +27,7 @@ import {
   resumeSession,
   startSession,
   endSession,
+  extendSession,
   addSessionProduct,
   type UiLiveSession,
   type CompletedSale,
@@ -67,9 +68,9 @@ const ROOM_ACTIONS: Record<RoomStatus, RoomActionDef[]> = {
     { id: 'mark-maintenance', label: 'Put Under Maintenance', icon: <Wrench size={22} />, tone: 'neutral' },
   ],
   occupied: [
-    { id: 'end-session', label: 'End Session', icon: <Square size={22} />, tone: 'danger' },
-    { id: 'add-drinks', label: 'Add Drinks', icon: <CupSoda size={22} />, tone: 'primary' },
-    { id: 'add-guest', label: 'Add Guest', icon: <UserPlus size={22} />, tone: 'primary' },
+    { id: 'end-session', label: 'Checkout', icon: <Square size={22} />, tone: 'danger' },
+    { id: 'add-drinks', label: 'Add Drink', icon: <CupSoda size={22} />, tone: 'primary' },
+    { id: 'extend-15', label: '+15 min Time', icon: <Clock size={22} />, tone: 'accent' },
     { id: 'pause-session', label: 'Pause Session', icon: <Pause size={22} />, tone: 'warning' },
     { id: 'transfer-room', label: 'Transfer Room', icon: <ArrowLeftRight size={22} />, tone: 'neutral' },
     { id: 'print-receipt', label: 'Print Receipt', icon: <Printer size={22} />, tone: 'neutral' },
@@ -144,9 +145,24 @@ interface RoomQuickActionsProps {
   room: RoomLike;
   onStatusChange?: (next: RoomStatus, note?: string) => void;
   className?: string;
+  /** 'button' = single trigger; 'inline' = direct state-aware actions on the card. */
+  variant?: 'button' | 'inline';
 }
 
-export default function RoomQuickActions({ room, onStatusChange, className = '' }: RoomQuickActionsProps) {
+/** Direct one-tap actions shown on the card face per room status (§3). */
+const INLINE_ACTIONS: Partial<Record<RoomStatus, string[]>> = {
+  available: ['start-session', 'reserve-room'],
+  occupied: ['end-session', 'add-drinks', 'extend-15', 'pause-session'],
+  reserved: ['start-session', 'cancel-reservation'],
+  maintenance: ['mark-available'],
+};
+
+export default function RoomQuickActions({
+  room,
+  onStatusChange,
+  className = '',
+  variant = 'button',
+}: RoomQuickActionsProps) {
   const [open, setOpen] = useState(false);
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [liveSession, setLiveSession] = useState<UiLiveSession | null>(null);
@@ -274,6 +290,20 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
         }
         return;
       }
+      case 'extend-15': {
+        setProcessingAction(actionId);
+        const s = await requireLiveSession();
+        setProcessingAction(null);
+        if (!s) return;
+        try {
+          await extendSession(s.id, 15);
+          toast.success(`+15 minutes added to ${room.name}`);
+          closeAll();
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Could not extend time');
+        }
+        return;
+      }
       case 'transfer-room': {
         toast.info('Room transfer needs backend support — not wired yet');
         return;
@@ -388,21 +418,67 @@ export default function RoomQuickActions({ room, onStatusChange, className = '' 
 
   return (
     <>
+      {/* Direct card-face actions — no navigation, no extra clicks */}
+      {variant === 'inline' && (
+        <div
+          className="flex items-center gap-1.5"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {(INLINE_ACTIONS[room.status] ?? []).map((id) => {
+            const def = actions.find((a) => a.id === id);
+            if (!def) return null;
+            return (
+              <button
+                key={id}
+                type="button"
+                disabled={processingAction !== null}
+                title={def.label}
+                onClick={() => void runAction(id)}
+                className={`qa-tile flex-1 h-8 rounded-lg border text-[11px] font-bold uppercase tracking-wide flex items-center justify-center gap-1 disabled:opacity-50 ${toneClasses[def.tone]}`}
+              >
+                {processingAction === id ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  def.icon
+                )}
+                <span className="hidden xl:inline truncate">{def.label}</span>
+              </button>
+            );
+          })}
+          {/* Overflow — full actions modal */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(true);
+            }}
+            title="More actions"
+            aria-haspopup="dialog"
+            className="w-8 h-8 shrink-0 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40 flex items-center justify-center transition-all"
+          >
+            <Settings2 size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Trigger button — aligned to the primary checkout (.btn-primary) language */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        onKeyDown={(e) => e.stopPropagation()}
-        title="Quick Actions"
-        aria-haspopup="dialog"
-        className={`btn-primary w-full h-8 flex items-center justify-center gap-1.5 !text-[11px] uppercase tracking-wider ${className}`}
-      >
-        <Settings2 size={13} />
-        Quick Actions
-      </button>
+      {variant === 'button' && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          onKeyDown={(e) => e.stopPropagation()}
+          title="Quick Actions"
+          aria-haspopup="dialog"
+          className={`btn-primary w-full h-8 flex items-center justify-center gap-1.5 !text-[11px] uppercase tracking-wider ${className}`}
+        >
+          <Settings2 size={13} />
+          Quick Actions
+        </button>
+      )}
 
       {/* Actions modal — portaled to body so fixed positioning escapes glass cards */}
       {open && (
