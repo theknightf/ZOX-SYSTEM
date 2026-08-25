@@ -4,6 +4,7 @@ import {
   ClipboardList,
   PlayCircle,
   CheckCircle2,
+  XCircle,
   RotateCcw,
   Plus,
   X,
@@ -15,7 +16,13 @@ import {
   FolderOpen,
 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
-import { maintenanceApi, useAsyncData, toastApiError, type UiMaintenanceTask } from '@/lib/api';
+import {
+  maintenanceApi,
+  staffApi,
+  useAsyncData,
+  toastApiError,
+  type UiMaintenanceTask,
+} from '@/lib/api';
 
 type MaintenanceTask = UiMaintenanceTask;
 
@@ -47,6 +54,7 @@ const initialForm = {
 
 export default function MaintenanceContent() {
   const { data, loading, reload } = useAsyncData(() => maintenanceApi.list(), []);
+  const { data: staff } = useAsyncData(() => staffApi.list(), []);
   const tasks = data ?? [];
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
   const [addOpen, setAddOpen] = useState(false);
@@ -57,7 +65,9 @@ export default function MaintenanceContent() {
   const open = tasks.filter((t) => t.status === 'Open').length;
   const inProgress = tasks.filter((t) => t.status === 'In Progress').length;
   const done = tasks.filter((t) => t.status === 'Done').length;
-  const urgent = tasks.filter((t) => t.priority === 'Urgent' && t.status !== 'Done').length;
+  const urgent = tasks.filter(
+    (t) => t.priority === 'Urgent' && t.status !== 'Done' && t.status !== 'Cancelled'
+  ).length;
 
   const handleStatusAction = async (task: MaintenanceTask, status: MaintenanceTask['status']) => {
     try {
@@ -76,12 +86,23 @@ export default function MaintenanceContent() {
       return;
     }
     try {
+      // Resolve the assignee by name → staff id (form collects a name).
+      let assignedTo: string | null = null;
+      const name = newTask.assignedTo.trim();
+      if (name) {
+        const match = (staff ?? []).find((s) => s.name.toLowerCase() === name.toLowerCase());
+        assignedTo = match?.id ?? null;
+        if (!assignedTo) {
+          toast.error(`No staff member named “${name}” — leave blank or fix the name`);
+          return;
+        }
+      }
       await maintenanceApi.create({
         title: newTask.title.trim(),
         location: newTask.location.trim() || '—',
         priority: newTask.priority,
         description: newTask.description.trim(),
-        assigned_to: null,
+        assigned_to: assignedTo,
       });
       setNewTask(initialForm);
       setAddOpen(false);
@@ -260,13 +281,22 @@ export default function MaintenanceContent() {
                     </button>
                   )}
                   {task.status === 'In Progress' && (
-                    <button
-                      onClick={() => handleStatusAction(task, 'Done')}
-                      className="btn-primary flex items-center gap-1.5 h-8 px-3"
-                    >
-                      <CheckCircle2 size={14} />
-                      Mark Done
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleStatusAction(task, 'Done')}
+                        className="btn-primary flex items-center gap-1.5 h-8 px-3"
+                      >
+                        <CheckCircle2 size={14} />
+                        Mark Done
+                      </button>
+                      <button
+                        onClick={() => handleStatusAction(task, 'Cancelled')}
+                        className="btn-danger flex items-center gap-1.5 h-8 px-3"
+                      >
+                        <XCircle size={14} />
+                        Cancel
+                      </button>
+                    </>
                   )}
                   {(task.status === 'Done' || task.status === 'Cancelled') && (
                     <button
@@ -358,11 +388,17 @@ export default function MaintenanceContent() {
                   Assigned to
                 </label>
                 <input
+                  list="staff-names"
                   value={newTask.assignedTo}
                   onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })}
-                  placeholder="e.g. Nour Hassan"
+                  placeholder="Select or type a staff name"
                   className="input-field"
                 />
+                <datalist id="staff-names">
+                  {(staff ?? []).map((s) => (
+                    <option key={s.id} value={s.name} />
+                  ))}
+                </datalist>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-1.5">

@@ -56,7 +56,10 @@ export const maintenanceApi = {
     if (patch.location !== undefined) values.location = patch.location;
     if (patch.priority !== undefined) values.priority = patch.priority;
     if (patch.description !== undefined) values.description = patch.description;
+    if (patch.assignedTo !== undefined) values.assigned_to = patch.assignedTo;
     if (patch.status === 'Done') values.completed_at = new Date().toISOString();
+    // Reopening/cancelling clears the stale completion stamp.
+    if (patch.status && patch.status !== 'Done') values.completed_at = null;
     await updateRow('maintenance_tasks', id, values);
   },
 };

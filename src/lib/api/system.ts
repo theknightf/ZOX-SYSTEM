@@ -11,6 +11,63 @@ import type {
 import { enGBDateTime, fetchAll } from './base';
 
 // ---------------------------------------------------------------------------
+// Notifications — real in-app notification records (see migration
+// 20260824000000). Requires the notifications table to exist.
+// ---------------------------------------------------------------------------
+export interface UiNotification {
+  id: string;
+  customerId: string | null;
+  phone: string;
+  title: string;
+  body: string;
+  kind: string;
+  createdAt: string;
+}
+
+export const notificationsApi = {
+  async create(input: {
+    customerId?: string | null;
+    phone: string;
+    title: string;
+    body?: string;
+    kind?: 'info' | 'lost-found' | 'reservation' | 'session';
+    roomId?: string | null;
+  }): Promise<void> {
+    const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
+    const client = getSupabaseBrowserClient();
+    const { error } = await client.from('notifications').insert({
+      customer_id: input.customerId ?? null,
+      phone: input.phone,
+      title: input.title,
+      body: input.body ?? '',
+      kind: input.kind ?? 'info',
+      room_id: input.roomId ?? null,
+    } as never);
+    if (error) throw new Error(error.message);
+  },
+  async list(limit = 50): Promise<UiNotification[]> {
+    const rows = await fetchAll<{
+      id: string;
+      customer_id: string | null;
+      phone: string;
+      title: string;
+      body: string;
+      kind: string;
+      created_at: string;
+    }>('notifications', { order: 'created_at', ascending: false, limit });
+    return rows.map((r) => ({
+      id: r.id,
+      customerId: r.customer_id,
+      phone: r.phone,
+      title: r.title,
+      body: r.body,
+      kind: r.kind,
+      createdAt: enGBDateTime(r.created_at),
+    }));
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Audit logs (read-only, written by triggers)
 // ---------------------------------------------------------------------------
 export interface UiAuditLog {

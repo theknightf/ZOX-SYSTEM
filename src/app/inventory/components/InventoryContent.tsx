@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Package, Plus, Search, Download, AlertTriangle, Boxes, Wallet, X } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { inventoryApi, useAsyncData, toastApiError, type UiInventoryItem } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type StockStatus = UiInventoryItem['status'];
 
@@ -17,6 +18,8 @@ const statusStyles: Record<StockStatus, string> = {
 };
 
 export default function InventoryContent() {
+  const { role } = useAuth();
+  const isStaff = role === 'staff';
   const { data, loading, reload } = useAsyncData(() => inventoryApi.list(), []);
   const items = data ?? [];
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,16 +75,33 @@ export default function InventoryContent() {
   const handleStatusChange = async (id: string, status: StockStatus) => {
     const item = items.find((i) => i.id === id);
     if (!item) return;
+
+    // Server-enforced too (adjust_inventory RPC): staff can only INCREASE stock.
+    const delta =
+      status === 'Out of Stock'
+        ? -item.stock
+        : status === 'Low Stock'
+          ? Math.max(1, item.reorderLevel + 1) - item.stock
+          : item.stock <= 0
+            ? item.reorderLevel + 1 - item.stock
+            : 0;
+
+    if (delta === 0) {
+      toast.info(`${item.name} is already at ${status} levels — nothing to adjust`);
+      return;
+    }
+    if (isStaff && delta < 0) {
+      toast.error('Staff can only increase stock — ask a manager for decreases');
+      return;
+    }
+
     try {
-      if (status === 'Out of Stock') {
-        await inventoryApi.adjust(id, -item.stock, 'Marked Out of Stock');
-      } else if (status === 'Low Stock') {
-        await inventoryApi.adjust(id, item.reorderLevel - item.stock, 'Marked Low Stock');
-      } else {
-        const target = item.stock <= 0 ? Math.max(item.reorderLevel, 1) : item.stock;
-        await inventoryApi.adjust(id, target - item.stock, 'Marked In Stock');
-      }
-      toast.success(`Status updated to ${status}`);
+      await inventoryApi.adjust(
+        id,
+        delta,
+        `Marked ${status}${isStaff ? '' : ` (${delta > 0 ? '+' : ''}${delta})`}`
+      );
+      toast.success(`${item.name} → ${status}`);
       reload();
     } catch (err) {
       toastApiError(err);
@@ -90,7 +110,8 @@ export default function InventoryContent() {
 
   const handleExport = () => {
     const header = 'Name,Category,SKU,Stock,Reorder Level,Unit Price,Supplier,Status';
-    const rows = items.map((i) =>
+    // Export respects the active filters, matching what the user sees.
+    const rows = filtered.map((i) =>
       [i.name, i.category, i.sku, i.stock, i.reorderLevel, i.unitPrice, i.supplier, i.status]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(',')
@@ -311,11 +332,11 @@ export default function InventoryContent() {
                         value={item.status}
                         onChange={(e) => handleStatusChange(item.id, e.target.value as StockStatus)}
                         className={`status-badge cursor-pointer outline-none appearance-none text-center pr-2 ${statusStyles[item.status]}`}
-                        title="Edit status"
+                        title={isStaff ? 'Staff can only increase stock' : 'Edit status'}
                       >
                         <option value="In Stock">In Stock</option>
                         <option value="Low Stock">Low Stock</option>
-                        <option value="Out of Stock">Out of Stock</option>
+                        {!isStaff && <option value="Out of Stock">Out of Stock</option>}
                       </select>
                     </td>
                   </tr>

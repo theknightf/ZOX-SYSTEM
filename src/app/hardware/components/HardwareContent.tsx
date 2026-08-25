@@ -95,7 +95,11 @@ export default function HardwareContent() {
 
   const handleStatusChange = async (id: string, status: HardwareStatus) => {
     try {
-      await hardwareApi.update(id, { status });
+      // Moving a unit into service counts as servicing it.
+      await hardwareApi.update(id, {
+        status,
+        ...(status === 'Available' ? { lastServiced: new Date().toISOString().slice(0, 10) } : {}),
+      });
       toast.success(`Asset marked as ${status}`);
       reload();
     } catch (err) {

@@ -1,65 +1,59 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ScrollText,
   Info,
   AlertTriangle,
   ShieldAlert,
   Search,
-  Trash2,
   RefreshCw,
   Inbox,
 } from 'lucide-react';
-import { toast, Toaster } from 'sonner';
-import { loadAuditLogs, saveAuditLogs } from '@/data/auditLogs';
-import type { AuditLogEntry } from '@/data/auditLogs';
+import { Toaster } from 'sonner';
+import { auditApi, useAsyncData } from '@/lib/api';
+import type { UiAuditLog } from '@/lib/api/system';
 
 type SeverityFilter = 'All' | 'Info' | 'Warning' | 'Critical';
 
 const severityFilters: SeverityFilter[] = ['All', 'Info', 'Warning', 'Critical'];
 
-const severityStyles: Record<AuditLogEntry['severity'], string> = {
+const severityStyles: Record<string, string> = {
   Info: 'bg-info/10 text-info border border-info/20',
   Warning: 'bg-warning/10 text-warning border border-warning/20',
   Critical: 'bg-danger/10 text-danger border border-danger/20',
 };
 
 export default function AuditLogsContent() {
-  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  // Real audit trail — written by SECDEF row-change triggers on 19 tables.
+  const { data, loading, reload } = useAsyncData(() => auditApi.list(), []);
+  const logs = (data ?? []) as UiAuditLog[];
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [clearOpen, setClearOpen] = useState(false);
-
-  const refresh = () => {
-    setLogs(loadAuditLogs());
-    setLoaded(true);
-  };
 
   useEffect(() => {
-    refresh();
+    const t = setInterval(() => reload(), 30000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filtered = logs.filter((log) => {
-    const matchesSeverity = severityFilter === 'All' || log.severity === severityFilter;
-    const matchesSearch =
-      !searchQuery ||
-      log.actor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.target.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSeverity && matchesSearch;
-  });
+  const filtered = useMemo(
+    () =>
+      logs.filter((log) => {
+        const matchesSeverity = severityFilter === 'All' || log.severity === severityFilter;
+        const q = searchQuery.toLowerCase();
+        const matchesSearch =
+          !q ||
+          log.actor.toLowerCase().includes(q) ||
+          log.action.toLowerCase().includes(q) ||
+          log.target.toLowerCase().includes(q);
+        return matchesSeverity && matchesSearch;
+      }),
+    [logs, severityFilter, searchQuery]
+  );
 
   const infoCount = logs.filter((l) => l.severity === 'Info').length;
   const warningCount = logs.filter((l) => l.severity === 'Warning').length;
   const criticalCount = logs.filter((l) => l.severity === 'Critical').length;
-
-  const handleClear = () => {
-    saveAuditLogs([]);
-    setLogs([]);
-    setClearOpen(false);
-    toast.success('Audit logs cleared');
-  };
 
   return (
     <div className="p-4 lg:p-6 xl:p-8 max-w-screen-2xl mx-auto space-y-6">
@@ -70,23 +64,13 @@ export default function AuditLogsContent() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Audit Logs</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Full history of system actions — refreshed automatically
+            Server-recorded history of every create, update, and delete — auto-refreshes
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={refresh} className="btn-secondary flex items-center gap-2 h-9">
-            <RefreshCw size={14} />
-            Refresh
-          </button>
-          <button
-            onClick={() => setClearOpen(true)}
-            disabled={logs.length === 0}
-            className="btn-danger flex items-center gap-2 h-9 bg-danger/10 hover:bg-danger/20 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Trash2 size={14} />
-            Clear All
-          </button>
-        </div>
+        <button onClick={() => reload()} className="btn-secondary flex items-center gap-2 h-9">
+          <RefreshCw size={14} />
+          Refresh
+        </button>
       </div>
 
       {/* Stats */}
@@ -171,7 +155,7 @@ export default function AuditLogsContent() {
       {/* Table */}
       <div className="card-base overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[760px]">
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -195,7 +179,7 @@ export default function AuditLogsContent() {
               </tr>
             </thead>
             <tbody>
-              {!loaded ? (
+              {loading ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-16 text-center text-muted-foreground">
                     Loading logs...
@@ -206,7 +190,7 @@ export default function AuditLogsContent() {
                   <td colSpan={6} className="px-4 py-16 text-center text-muted-foreground">
                     <Inbox size={24} className="mx-auto mb-2 opacity-50" />
                     {logs.length === 0
-                      ? 'No audit events yet. Clear all? Logs will reappear when actions occur.'
+                      ? 'No audit events recorded yet. Every create/update/delete across the system will appear here automatically.'
                       : 'No logs match your filters.'}
                   </td>
                 </tr>
@@ -220,7 +204,7 @@ export default function AuditLogsContent() {
                       {log.timestamp}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`status-badge ${severityStyles[log.severity]}`}>
+                      <span className={`status-badge ${severityStyles[log.severity] ?? severityStyles.Info}`}>
                         {log.severity}
                       </span>
                     </td>
@@ -253,35 +237,6 @@ export default function AuditLogsContent() {
           </table>
         </div>
       </div>
-
-      {/* Clear Confirm Modal */}
-      {clearOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60" onClick={() => setClearOpen(false)} />
-          <div className="relative w-full max-w-sm card-base p-6 fade-in">
-            <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-danger/10 border border-danger/20 mb-4 mx-auto">
-              <Trash2 size={22} className="text-danger" />
-            </div>
-            <h2 className="text-lg font-bold text-foreground text-center mb-1">
-              Clear all audit logs?
-            </h2>
-            <p className="text-sm text-muted-foreground text-center mb-5">
-              All {logs.length} events will be permanently removed. This cannot be undone.
-            </p>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setClearOpen(false)} className="btn-secondary flex-1 h-10">
-                Cancel
-              </button>
-              <button
-                onClick={handleClear}
-                className="btn-danger flex-1 h-10 bg-danger/10 hover:bg-danger/20"
-              >
-                Clear All
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

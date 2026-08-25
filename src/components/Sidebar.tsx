@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ZoxMark from '@/components/ui/ZoxMark';
+import { reservationsApi, useAsyncData } from '@/lib/api';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import AccountSwitcher from '@/components/ui/AccountSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
@@ -187,6 +188,46 @@ interface SidebarProps {
   role?: 'owner' | 'manager' | 'staff' | 'customer';
 }
 
+/** Real "who is arriving next" card — replaces the decorative status widget. */
+function NextArrivalCard() {
+  const { data } = useAsyncData(async () => {
+    const today = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const todayISO = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    const all = await reservationsApi.list();
+    return all
+      .filter(
+        (r) =>
+          r.date === todayISO &&
+          ['Reserved', 'Waiting', 'Late'].includes(r.status)
+      )
+      .sort((a, b) => a.time.localeCompare(b.time))[0];
+  }, []);
+
+  const next = data ?? null;
+
+  return (
+    <div className="mx-4 mb-3 p-3 rounded-xl bg-card/60 border border-border">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">
+          Next Arrival
+        </span>
+      </div>
+      {next ? (
+        <div className="text-xs">
+          <p className="font-semibold text-foreground truncate">{next.customer}</p>
+          <p className="text-muted-foreground mt-0.5 font-data-mono">
+            {next.time} · {next.room} · {next.players}p
+          </p>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">No more arrivals today</p>
+      )}
+    </div>
+  );
+}
+
 interface SidebarContentProps {
   collapsed: boolean;
   effectiveRole: 'owner' | 'manager' | 'staff' | 'customer';
@@ -305,27 +346,8 @@ function SidebarContent({
         ))}
       </nav>
 
-      {/* System status card */}
-      {!collapsed && (
-        <div className="mx-4 mb-3 p-3 rounded-xl bg-card/60 border border-border">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">
-              System Online
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <span className="text-muted-foreground text-[10px] block">Latency</span>
-              <span className="font-data-mono text-accent font-semibold">12ms</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground text-[10px] block">Uptime</span>
-              <span className="font-data-mono text-foreground font-semibold">99.8%</span>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Next arrival — real operational info for the floor team */}
+      {!collapsed && <NextArrivalCard />}
 
       {/* Bottom */}
       <div className="border-t border-border p-2">

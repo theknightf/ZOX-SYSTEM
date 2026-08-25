@@ -16,7 +16,7 @@ import {
   FolderX,
 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
-import { lostFoundApi, useAsyncData, toastApiError, type UiLostFoundItem } from '@/lib/api';
+import { lostFoundApi, roomsApi, useAsyncData, toastApiError, type UiLostFoundItem } from '@/lib/api';
 
 type ItemStatus = UiLostFoundItem['status'];
 type ItemCategory = UiLostFoundItem['category'];
@@ -66,6 +66,7 @@ const initialForm = {
 
 export default function LostFoundContent() {
   const { data, loading, reload } = useAsyncData(() => lostFoundApi.list(), []);
+  const { data: rooms } = useAsyncData(() => roomsApi.list(), []);
   const items = data ?? [];
   const [statusFilter, setStatusFilter] = useState<ItemStatus | 'All'>('All');
   const [categoryFilter, setCategoryFilter] = useState<ItemCategory | 'All'>('All');
@@ -73,6 +74,87 @@ export default function LostFoundContent() {
   const [newItem, setNewItem] = useState(initialForm);
   const [claimTarget, setClaimTarget] = useState<LostFoundItem | null>(null);
   const [claimantName, setClaimantName] = useState('');
+  const [disposeConfirmId, setDisposeConfirmId] = useState<string | null>(null);
+  const [lastCustomer, setLastCustomer] = useState<string | null>(null);
+  const [notifying, setNotifying] = useState(false);
+
+  // Last customer associated with the selected room (session or reservation).
+  const handleRoomSelect = async (roomName: string) => {
+    setNewItem((p) => ({ ...p, foundLocation: roomName }));
+    setLastCustomer(null);
+    const room = (rooms ?? []).find((r) => r.name === roomName);
+    if (!room) return;
+    try {
+      const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
+      const client = getSupabaseBrowserClient();
+      const { data: sess } = await client
+        .from('live_sessions')
+        .select('customer_id, guest_name, phone, started_at')
+        .eq('room_id', room.id)
+        .order('started_at', { ascending: false })
+        .limit(1);
+      const { data: res } = await client
+        .from('reservations')
+        .select('customer_id, guest_name, phone, res_date')
+        .eq('room_id', room.id)
+        .order('res_date', { ascending: false })
+        .limit(1);
+      type Row = { customer_id: string | null; guest_name: string | null; phone: string | null; at: string; via: string };
+      const candidates: Row[] = [
+        ...(sess ?? []).map((s: Record<string, unknown>) => ({
+          customer_id: (s.customer_id as string | null) ?? null,
+          guest_name: (s.guest_name as string | null) ?? null,
+          phone: (s.phone as string | null) ?? null,
+          at: String(s.started_at ?? ''),
+          via: 'last session',
+        })),
+        ...(res ?? []).map((r: Record<string, unknown>) => ({
+          customer_id: (r.customer_id as string | null) ?? null,
+          guest_name: (r.guest_name as string | null) ?? null,
+          phone: (r.phone as string | null) ?? null,
+          at: `${r.res_date as string}T00:00:00`,
+          via: 'last reservation',
+        })),
+      ].filter((c) => c.guest_name);
+      candidates.sort((a, b) => b.at.localeCompare(a.at));
+      if (candidates[0]) {
+        const c = candidates[0];
+        setLastCustomer(
+          `${c.guest_name}${c.phone && c.phone !== '—' ? ` · ${c.phone}` : ''} (${c.via})`
+        );
+      }
+    } catch {
+      /* lookup is best-effort */
+    }
+  };
+
+  const handleNotifyCustomer = async () => {
+    if (!lastCustomer || !newItem.description.trim()) {
+      toast.error('Pick a room and describe the item first');
+      return;
+    }
+    const phoneMatch = lastCustomer.match(/01[0-9]{9}/);
+    setNotifying(true);
+    try {
+      const { notificationsApi } = await import('@/lib/api');
+      await notificationsApi.create({
+        phone: phoneMatch ? phoneMatch[0] : '',
+        title: 'Lost & found: your item may have been found',
+        body: `We found an item in the room you used: ${newItem.description.trim()}. Please check with reception.`,
+        kind: 'lost-found',
+      });
+      toast.success('Notification recorded for the customer');
+    } catch (err) {
+      // Honest failure — the notifications table must exist (run the migration).
+      toast.error(
+        err instanceof Error
+          ? `Notification failed: ${err.message}`
+          : 'Notification failed — notifications table missing?'
+      );
+    } finally {
+      setNotifying(false);
+    }
+  };
 
   const unclaimed = items.filter((i) => i.status === 'Unclaimed').length;
   const returned = items.filter((i) => i.status === 'Returned').length;
@@ -127,6 +209,7 @@ export default function LostFoundContent() {
   };
 
   const handleDispose = async (item: LostFoundItem) => {
+    setDisposeConfirmId(null);
     try {
       await lostFoundApi.update(item.id, { status: 'Disposed' });
       toast.success('Item marked as disposed');
@@ -360,13 +443,31 @@ export default function LostFoundContent() {
                                 <CheckCircle2 size={14} />
                                 Mark Returned
                               </button>
-                              <button
-                                onClick={() => handleDispose(item)}
-                                className="btn-danger flex items-center gap-1.5 h-8 px-3"
-                              >
-                                <Trash2 size={14} />
-                                Dispose
-                              </button>
+                              {disposeConfirmId === item.id ? (
+                                <>
+                                  <button
+                                    onClick={() => void handleDispose(item)}
+                                    className="btn-danger flex items-center gap-1.5 h-8 px-3 bg-danger text-white"
+                                  >
+                                    <Trash2 size={14} />
+                                    Confirm
+                                  </button>
+                                  <button
+                                    onClick={() => setDisposeConfirmId(null)}
+                                    className="btn-secondary h-8 px-3"
+                                  >
+                                    Keep
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => setDisposeConfirmId(item.id)}
+                                  className="btn-danger flex items-center gap-1.5 h-8 px-3"
+                                >
+                                  <Trash2 size={14} />
+                                  Dispose
+                                </button>
+                              )}
                             </>
                           )}
                           {item.status !== 'Unclaimed' && (
@@ -436,14 +537,36 @@ export default function LostFoundContent() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-1.5">
-                    Found location
+                    Found location (room)
                   </label>
-                  <input
+                  <select
                     value={newItem.foundLocation}
-                    onChange={(e) => setNewItem({ ...newItem, foundLocation: e.target.value })}
-                    placeholder="e.g. Room 3"
+                    onChange={(e) => void handleRoomSelect(e.target.value)}
                     className="input-field"
-                  />
+                  >
+                    <option value="">Select a room…</option>
+                    {(rooms ?? []).map((r) => (
+                      <option key={r.id} value={r.name}>
+                        {r.name}
+                      </option>
+                    ))}
+                    <option value="Store">Store / Other</option>
+                  </select>
+                  {lastCustomer && (
+                    <div className="mt-2 p-2.5 rounded-lg border border-primary/25 bg-primary/10">
+                      <p className="text-xs font-semibold text-primary">
+                        Last customer here: {lastCustomer}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void handleNotifyCustomer()}
+                        disabled={notifying}
+                        className="mt-1.5 text-xs font-bold text-primary hover:underline disabled:opacity-50"
+                      >
+                        {notifying ? 'Notifying…' : 'Notify this customer'}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-1.5">

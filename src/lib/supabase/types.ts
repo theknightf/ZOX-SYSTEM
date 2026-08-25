@@ -417,6 +417,32 @@ export interface Database {
         Update: Partial<LoyaltyTransactionRow>;
       };
       audit_logs: { Row: AuditLogRow; Insert: Partial<AuditLogRow>; Update: Partial<AuditLogRow> };
+      notifications: {
+        Row: TableRow & {
+          customer_id: string | null;
+          phone: string;
+          title: string;
+          body: string;
+          kind: string;
+          room_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: Partial<TableRow & {
+          customer_id: string | null;
+          phone: string;
+          title: string;
+          body: string;
+          kind: string;
+          room_id: string | null;
+          created_by: string | null;
+        }>;
+        Update: Partial<TableRow & {
+          title: string;
+          body: string;
+          kind: string;
+        }>;
+      };
       settings: { Row: SettingsRow; Insert: Partial<SettingsRow>; Update: Partial<SettingsRow> };
     };
     Views: {
