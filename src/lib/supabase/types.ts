@@ -222,6 +222,7 @@ export interface WaitingListRow extends TableRow {
   room_preference: 'Standard' | 'Premium' | 'VIP' | 'Any';
   game: string | null;
   phone: string | null;
+  customer_id: string | null;
   joined_at: string;
   status: WaitingStatus;
   notified_at: string | null;

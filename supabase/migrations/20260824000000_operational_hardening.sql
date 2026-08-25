@@ -195,3 +195,9 @@ grant execute on function public.room_slot_conflict(uuid, date, time, int, uuid)
 create unique index if not exists customers_phone_unique_fmt
   on public.customers (phone)
   where phone ~ '^01[0-9]{9}$';
+
+-- ─────────────────────────────────────────────────────────────
+-- 6. Waiting list ↔ customer linking
+-- ─────────────────────────────────────────────────────────────
+alter table public.waiting_list
+  add column if not exists customer_id uuid references public.customers(id) on delete set null;

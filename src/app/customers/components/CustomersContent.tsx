@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
+import CustomerProfileModal from './CustomerProfileModal';
 import { Crown, Search, Sparkles, Trash2, TrendingUp, UserPlus, Users, X } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { customersApi, useAsyncData, toastApiError } from '@/lib/api';
@@ -34,6 +35,7 @@ export default function CustomersContent() {
   const [addOpen, setAddOpen] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [pointsTarget, setPointsTarget] = useState<UiCustomer | null>(null);
+  const [profileTarget, setProfileTarget] = useState<UiCustomer | null>(null);
   const [pointsAmount, setPointsAmount] = useState(100);
   const confirmRef = useRef<number | null>(null);
 
@@ -280,7 +282,8 @@ export default function CustomersContent() {
                 filtered.map((customer) => (
                   <tr
                     key={customer.id}
-                    className="border-b border-border/60 last:border-0 hover:bg-muted/20 transition-colors"
+                    onClick={() => setProfileTarget(customer)}
+                    className="border-b border-border/60 last:border-0 hover:bg-muted/20 transition-colors cursor-pointer"
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
@@ -311,7 +314,8 @@ export default function CustomersContent() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setPointsTarget(customer);
                           setPointsAmount(100);
                         }}
@@ -327,14 +331,20 @@ export default function CustomersContent() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => setPointsTarget(customer)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPointsTarget(customer);
+                        }}
                         className="p-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors"
                         title="Add points"
                       >
                         <Sparkles size={14} />
                       </button>
                       <button
-                        onClick={() => handleDelete(customer)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(customer);
+                        }}
                         className={`ml-2 p-1.5 rounded-lg border transition-colors ${
                           confirmId === customer.id
                             ? 'bg-danger/10 border-danger/40 text-danger'
@@ -507,6 +517,14 @@ export default function CustomersContent() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Customer Profile */}
+      {profileTarget && (
+        <CustomerProfileModal
+          customer={profileTarget}
+          onClose={() => setProfileTarget(null)}
+        />
       )}
     </div>
   );

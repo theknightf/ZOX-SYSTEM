@@ -11,11 +11,13 @@ import {
   UserPlus,
   Users,
   X,
+  Phone,
 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import {
   waitingApi,
   roomsApi,
+  customersApi,
   useAsyncData,
   toastApiError,
   type UiWaitingEntry,
@@ -88,6 +90,29 @@ export default function WaitingListContent() {
     game: '',
     phone: '',
   });
+  const [matchedCustomer, setMatchedCustomer] = useState<
+    Awaited<ReturnType<typeof customersApi.getByPhone>>
+  >(null);
+  const [bumpConfirmId, setBumpConfirmId] = useState<string | null>(null);
+
+  // Phone lookup — link to the existing customer record when present.
+  useEffect(() => {
+    const clean = newEntry.phone.trim();
+    if (!/^01[0-9]{9}$/.test(clean)) {
+      setMatchedCustomer(null);
+      return;
+    }
+    const t = setTimeout(async () => {
+      try {
+        const found = await customersApi.getByPhone(clean);
+        setMatchedCustomer(found);
+        if (found) setNewEntry((prev) => ({ ...prev, name: found.name }));
+      } catch {
+        /* best-effort lookup */
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [newEntry.phone]);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 30000);
@@ -101,6 +126,20 @@ export default function WaitingListContent() {
 
   const waitingNow = entries.filter((e) => e.status === 'Waiting').length;
   const notified = entries.filter((e) => e.status === 'Notified').length;
+  // Real average wait across everyone still in the queue.
+  const avgWaitMinutes =
+    waitingNow > 0
+      ? Math.round(
+          entries
+            .filter((e) => e.status === 'Waiting')
+            .reduce(
+              (sum, e) => sum + Math.max(0, now.getTime() - parseJoined(e.joinedAt).getTime()),
+              0
+            ) /
+            waitingNow /
+            60000
+        )
+      : 0;
   const seatedToday = entries.filter((e) => {
     if (e.status !== 'Seated') return false;
     const joined = parseJoined(e.joinedAt);
@@ -111,6 +150,14 @@ export default function WaitingListContent() {
     );
   }).length;
 
+  /** Rooms that can physically fit the party, preference-ordered. */
+  const fittingRooms = (entry: WaitingEntry): UiRoom[] => {
+    const fits = availableRooms.filter((r) => r.capacity >= entry.partySize);
+    if (entry.roomPreference === 'Any') return fits;
+    const preferred = fits.filter((r) => r.roomType === entry.roomPreference);
+    return [...preferred, ...fits.filter((r) => r.roomType !== entry.roomPreference)];
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEntry.name.trim()) {
@@ -118,14 +165,25 @@ export default function WaitingListContent() {
       return;
     }
     try {
+      // Link to existing customer, or create one — never duplicate.
+      let customerId = matchedCustomer?.id ?? null;
+      if (!customerId && /^01[0-9]{9}$/.test(newEntry.phone.trim())) {
+        const result = await customersApi.createIfAbsent({
+          name: newEntry.name.trim(),
+          phone: newEntry.phone,
+        });
+        customerId = result.id;
+      }
       await waitingApi.create({
         name: newEntry.name.trim(),
         party_size: Math.max(1, Number(newEntry.partySize) || 1),
         room_preference: newEntry.roomPreference,
         game: newEntry.game.trim() || undefined,
         phone: newEntry.phone.trim() || undefined,
+        customer_id: customerId,
       });
       setNewEntry({ name: '', partySize: 2, roomPreference: 'Any', game: '', phone: '' });
+      setMatchedCustomer(null);
       setAddOpen(false);
       toast.success(`${newEntry.name.trim()} added to the queue`);
       reload();
@@ -230,7 +288,9 @@ export default function WaitingListContent() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Avg Wait</p>
-              <p className="text-lg font-bold text-foreground font-tabular">~20 min</p>
+              <p className="text-lg font-bold text-foreground font-tabular">
+                {waitingNow > 0 ? `${avgWaitMinutes} min` : '—'}
+              </p>
             </div>
           </div>
         </div>
@@ -306,7 +366,7 @@ export default function WaitingListContent() {
                           {waitingMinutes === 0 ? 'just now' : 'waiting'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         {entry.status !== 'Seated' && entry.status !== 'Cancelled' && (
                           <>
                             {entry.status === 'Waiting' && (
@@ -319,22 +379,22 @@ export default function WaitingListContent() {
                                 Notify
                               </button>
                             )}
-                            {availableRooms.length > 0 ? (
+                            {fittingRooms(entry).length > 0 ? (
                               <div className="flex items-center gap-1 flex-wrap">
                                 <button
-                                  onClick={() => handleSeatToRoom(entry, availableRooms[0])}
+                                  onClick={() => handleSeatToRoom(entry, fittingRooms(entry)[0])}
                                   className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold bg-accent/10 border border-accent/25 text-accent hover:bg-accent/20 transition-all duration-150"
-                                  title={`Seat in ${availableRooms[0].name}`}
+                                  title={`Seat in ${fittingRooms(entry)[0].name} (fits ${fittingRooms(entry)[0].capacity})`}
                                 >
                                   <Check size={12} />
                                   Seat now
                                 </button>
-                                {availableRooms.slice(1, 3).map((room) => (
+                                {fittingRooms(entry).slice(1, 2).map((room) => (
                                   <button
                                     key={room.id}
                                     onClick={() => handleSeatToRoom(entry, room)}
                                     className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold bg-muted/30 border border-border text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all duration-150"
-                                    title={`Seat in ${room.name}`}
+                                    title={`Seat in ${room.name} (fits ${room.capacity})`}
                                   >
                                     <MapPin size={12} />
                                     {room.name}
@@ -344,23 +404,43 @@ export default function WaitingListContent() {
                             ) : (
                               <button
                                 onClick={() => handleSeat(entry)}
-                                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold bg-accent/10 border border-accent/25 text-accent hover:bg-accent/20 transition-all duration-150"
-                                title="Mark seated"
+                                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold bg-muted/30 border border-border text-muted-foreground hover:text-foreground transition-all duration-150"
+                                title="No fitting room available — mark seated without a room"
                               >
                                 <Check size={12} />
-                                Seat
+                                Seat (no room)
                               </button>
                             )}
                           </>
                         )}
-                        <button
-                          onClick={() => handleRemove(entry)}
-                          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold bg-danger/10 border border-danger/25 text-danger hover:bg-danger/20 transition-all duration-150"
-                          title="Remove from queue"
-                        >
-                          <X size={12} />
-                          Bump
-                        </button>
+                        {bumpConfirmId === entry.id ? (
+                          <>
+                            <button
+                              onClick={() => {
+                                setBumpConfirmId(null);
+                                void handleRemove(entry);
+                              }}
+                              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-bold bg-danger text-white transition-all duration-150"
+                            >
+                              Confirm Bump
+                            </button>
+                            <button
+                              onClick={() => setBumpConfirmId(null)}
+                              className="rounded-md px-2.5 py-1.5 text-xs font-semibold bg-muted/30 border border-border text-muted-foreground hover:text-foreground transition-all duration-150"
+                            >
+                              Keep
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setBumpConfirmId(entry.id)}
+                            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold bg-danger/10 border border-danger/25 text-danger hover:bg-danger/20 transition-all duration-150"
+                            title="Remove from queue"
+                          >
+                            <X size={12} />
+                            Bump
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -438,16 +518,30 @@ export default function WaitingListContent() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-1.5">
+                    <Phone size={13} className="inline mr-1" />
                     Phone
                   </label>
                   <input
                     value={newEntry.phone}
                     onChange={(e) => setNewEntry({ ...newEntry, phone: e.target.value })}
-                    placeholder="0100-xxx-0000"
+                    placeholder="01xxxxxxxxx"
                     className="input-field"
                   />
                 </div>
               </div>
+              {matchedCustomer ? (
+                <div className="flex items-center gap-2 p-3 rounded-xl border border-accent/30 bg-accent/10">
+                  <Check size={14} className="text-accent shrink-0" />
+                  <p className="text-xs font-semibold text-foreground">
+                    Existing customer: {matchedCustomer.name} ({matchedCustomer.tier}) — entry
+                    will be linked
+                  </p>
+                </div>
+              ) : /^01[0-9]{9}$/.test(newEntry.phone.trim()) ? (
+                <p className="text-xs text-primary font-semibold">
+                  New customer — a record will be created with this phone
+                </p>
+              ) : null}
               <div className="flex items-center gap-2 pt-2">
                 <button
                   type="button"

@@ -191,6 +191,7 @@ export interface UiWaitingEntry {
   roomPreference: 'Standard' | 'Premium' | 'VIP' | 'Any';
   game?: string;
   phone?: string;
+  customerId?: string | null;
   joinedAt: string; // en-GB display
   status: 'Waiting' | 'Notified' | 'Seated' | 'Cancelled';
   notifiedAt?: string;
@@ -210,6 +211,7 @@ function mapWaiting(row: JoinedWaiting): UiWaitingEntry {
     roomPreference: row.room_preference,
     game: row.game ?? undefined,
     phone: row.phone ?? undefined,
+    customerId: row.customer_id ?? null,
     joinedAt: enGBDateTime(row.joined_at),
     status: row.status,
     notifiedAt: row.notified_at ? hhmm(row.notified_at) : undefined,

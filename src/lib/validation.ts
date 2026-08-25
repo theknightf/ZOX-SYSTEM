@@ -211,6 +211,7 @@ export const waitingSchema = z.object({
   game: z.string().trim().max(80).nullish(),
   phone: z.string().trim().max(30).nullish(),
   notes: z.string().trim().max(300).nullish(),
+  customer_id: uuid.nullish(),
 });
 
 export const hardwareSchema = z.object({
