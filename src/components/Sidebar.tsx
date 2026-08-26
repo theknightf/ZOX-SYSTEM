@@ -190,19 +190,7 @@ interface SidebarProps {
 
 /** Real "who is arriving next" card — replaces the decorative status widget. */
 function NextArrivalCard() {
-  const { data } = useAsyncData(async () => {
-    const today = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const todayISO = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-    const all = await reservationsApi.list();
-    return all
-      .filter(
-        (r) =>
-          r.date === todayISO &&
-          ['Reserved', 'Waiting', 'Late'].includes(r.status)
-      )
-      .sort((a, b) => a.time.localeCompare(b.time))[0];
-  }, []);
+  const { data } = useAsyncData(() => reservationsApi.nextArrivalToday(), []);
 
   const next = data ?? null;
 

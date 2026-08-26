@@ -63,11 +63,15 @@ function mapSale(row: JoinedSale): UiSale {
 }
 
 export const salesApi = {
-  async list(): Promise<UiSale[]> {
+  async list(
+    opts: { fromDate?: string; limit?: number } = {}
+  ): Promise<UiSale[]> {
     const rows = await fetchAll<JoinedSale>('sales', {
       select: '*, sale_items(*), customers(name)',
       order: 'sold_at',
       ascending: false,
+      gte: opts.fromDate ? { sold_at: opts.fromDate } : undefined,
+      limit: opts.limit,
     });
     return rows.map(mapSale);
   },

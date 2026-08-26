@@ -145,13 +145,32 @@ function mapReservation(row: JoinedReservation): UiReservation {
 }
 
 export const reservationsApi = {
-  async list(): Promise<UiReservation[]> {
+  async list(
+    opts: { fromDate?: string; limit?: number } = {}
+  ): Promise<UiReservation[]> {
     const rows = await fetchAll<JoinedReservation>('reservations', {
       select: '*, rooms(name, room_type), customers(name)',
       order: 'res_date',
       ascending: false,
+      gte: opts.fromDate ? { res_date: opts.fromDate } : undefined,
+      limit: opts.limit,
     });
     return rows.map(mapReservation);
+  },
+  /** Lightest possible query for the sidebar "next arrival" widget. */
+  async nextArrivalToday(): Promise<UiReservation | null> {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const rows = await fetchAll<JoinedReservation>('reservations', {
+      select: '*, rooms(name, room_type), customers(name)',
+      eq: { res_date: today },
+      inFilter: { column: 'status', values: ['Reserved', 'Waiting', 'Late'] },
+      order: 'res_time',
+      ascending: true,
+      limit: 1,
+    });
+    return rows[0] ? mapReservation(rows[0]) : null;
   },
   async create(input: unknown): Promise<UiReservation> {
     const v = reservationSchema.parse(input);

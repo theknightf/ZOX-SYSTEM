@@ -379,11 +379,12 @@ interface JoinedFeedback extends FeedbackRow {
 }
 
 export const feedbackApi = {
-  async list(): Promise<UiFeedbackEntry[]> {
+  async list(opts: { limit?: number } = {}): Promise<UiFeedbackEntry[]> {
     const rows = await fetchAll<JoinedFeedback>('feedback', {
       select: '*, rooms(name)',
       order: 'submitted_at',
       ascending: false,
+      limit: opts.limit,
     });
     return rows.map((row) => ({
       id: row.id,

@@ -30,33 +30,25 @@ export default function CustomerProfileModal({ customer, onClose }: CustomerProf
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load every history stream in parallel — phone-matched rows included so
-  // pre-account walk-in history stays connected to the profile.
+  // Load every history stream in parallel — one phone-aware reservations
+  // query (or-filter) instead of two sequential round-trips.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
         const phone = customer.phone && customer.phone !== '—' ? customer.phone : null;
-        const base = await fetchAll<ReservationRow>('reservations', {
-          select: '*, rooms(name)',
-          eq: { customer_id: customer.id },
-          order: 'res_date',
-          ascending: false,
-          limit: 50,
-        });
-        const reservations = phone
-          ? await fetchAll<ReservationRow>('reservations', {
-              select: '*, rooms(name)',
-              eq: { phone },
-              order: 'res_date',
-              ascending: false,
-              limit: 50,
-            }).then((byPhone) => {
-              const map = new Map([...base, ...byPhone].map((r) => [r.id, r]));
-              return [...map.values()];
-            })
-          : base;
-        const [sessions, sales, feedback] = await Promise.all([
+        const orExpr = [
+          `customer_id.eq.${customer.id}`,
+          ...(phone ? [`phone.eq.${phone}`] : []),
+        ].join(',');
+        const [reservations, sessions, sales, feedback] = await Promise.all([
+          fetchAll<ReservationRow>('reservations', {
+            select: '*, rooms(name)',
+            or: orExpr,
+            order: 'res_date',
+            ascending: false,
+            limit: 50,
+          }),
           fetchAll<LiveSessionRow>('live_sessions', {
             eq: { customer_id: customer.id },
             order: 'started_at',

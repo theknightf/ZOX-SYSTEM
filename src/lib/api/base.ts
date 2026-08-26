@@ -32,6 +32,9 @@ export async function fetchAll<TRow>(
     ascending?: boolean;
     eq?: Record<string, unknown>;
     inFilter?: { column: string; values: unknown[] };
+    /** Raw PostgREST `or` expression, e.g. "customer_id.eq.x,phone.eq.y". */
+    or?: string;
+    gte?: Record<string, unknown>;
     limit?: number;
   } = {}
 ): Promise<TRow[]> {
@@ -44,6 +47,12 @@ export async function fetchAll<TRow>(
     query = query.eq(column, value);
   }
   if (opts.inFilter) query = query.in(opts.inFilter.column, opts.inFilter.values);
+  if (opts.or) query = query.or(opts.or);
+  if (opts.gte) {
+    for (const [column, value] of Object.entries(opts.gte)) {
+      query = query.gte(column, value);
+    }
+  }
   if (opts.order) query = query.order(opts.order, { ascending: opts.ascending ?? false });
   if (opts.limit != null) query = query.limit(opts.limit);
   const { data, error } = await query;

@@ -186,7 +186,16 @@ export default function ReservationsContent() {
   const { user, role } = useAuth();
   const isCustomer = role === 'customer';
   const customerName = user?.name ?? '';
-  const { data, loading, reload } = useAsyncData(() => reservationsApi.list(), []);
+  // Bounded fetch: ~2 months of history covers the calendar widget and
+  // filters without dragging the whole table over the wire.
+  const { data, loading, reload } = useAsyncData(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    d.setDate(1);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fromDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    return reservationsApi.list({ fromDate, limit: 500 });
+  }, []);
   const reservations = (data ?? []).map((r): Reservation => ({ ...r, customerStatus: 'Regular' }));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

@@ -33,12 +33,18 @@ const ReportsCharts = dynamic(() => import('./ReportsCharts'), {
 export default function ReportsContent() {
   const [range, setRange] = useState<RangeKey>('7d');
 
-  // Every figure on this page comes from the live database.
+  // Every figure on this page comes from the live database. Sales payload is
+  // bounded server-side: 60 days covers every selectable range except "all".
   const { data, loading } = useAsyncData(async () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 60);
+    const cutoff = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate()
+    ).padStart(2, '0')}`;
     const [sales, expenses, feedback, liveSessions] = await Promise.all([
-      salesApi.list(),
+      salesApi.list({ fromDate: cutoff, limit: 2000 }),
       expensesApi.list(),
-      feedbackApi.list(),
+      feedbackApi.list({ limit: 500 }),
       fetchLiveSessions().catch(() => []),
     ]);
     return { sales, expenses, feedback, liveCount: liveSessions.length };
